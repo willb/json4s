@@ -217,7 +217,7 @@ object JsonParser {
           ParserUtil.unquote(buf)
         } catch {
           case p: ParseException => throw p
-          case _ => fail("unexpected string end")
+          case _: Throwable => fail("unexpected string end")
         }
 
       def parseValue(first: Char) = {

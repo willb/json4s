@@ -81,7 +81,7 @@ trait Formats { self: Formats =>
     override val parameterNameReader = self.parameterNameReader
     override val typeHints = self.typeHints
     override val customSerializers = self.customSerializers
-    override val fieldSerializers = (mf.erasure, newSerializer) :: self.fieldSerializers
+    override val fieldSerializers = (mf.runtimeClass, newSerializer) :: self.fieldSerializers
   }
 
   private[json4s] def fieldSerializer(clazz: Class[_]): Option[FieldSerializer[_]] = {
@@ -142,7 +142,9 @@ trait Formats { self: Formats =>
      */
     def classFor(hint: String): Option[Class[_]]
 
-    def containsHint_?(clazz: Class[_]) = hints exists (_ isAssignableFrom clazz)
+    @deprecated("use containsHint instead of containsHint_?", "3.1.0")
+    def containsHint_?(clazz: Class[_]) = containsHint(clazz)
+    def containsHint(clazz: Class[_]) = hints exists (_ isAssignableFrom clazz)
     def deserialize: PartialFunction[(String, JObject), Any] = Map()
     def serialize: PartialFunction[Any, JObject] = Map()
 
@@ -161,7 +163,7 @@ trait Formats { self: Formats =>
        */
       def hintFor(clazz: Class[_]): String =
         (components
-          filter (_.containsHint_?(clazz))
+          filter (_.containsHint(clazz))
           map (th => (th.hintFor(clazz), th.classFor(th.hintFor(clazz)).getOrElse(sys.error("hintFor/classFor not invertible for " + th))))
           sortWith((x, y) => (delta(x._2, clazz) - delta(y._2, clazz)) == 0)).head._1
 
@@ -268,7 +270,7 @@ trait Formats { self: Formats =>
   class CustomSerializer[A: Manifest](
     ser: Formats => (PartialFunction[JValue, A], PartialFunction[Any, JValue])) extends Serializer[A] {
 
-    val Class = implicitly[Manifest[A]].erasure
+    val Class = implicitly[Manifest[A]].runtimeClass
 
     def deserialize(implicit format: Formats) = {
       case (TypeInfo(Class, _), json) =>

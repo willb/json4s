@@ -55,18 +55,15 @@ object Json4sBuild extends Build {
     organization := "org.json4s",
     version := "3.1.0-SNAPSHOT",
     scalaVersion := "2.10.0-RC1",
-    crossScalaVersions := Seq("2.9.2", "2.10.0-RC1"),
-    scalacOptions ++= Seq("-unchecked", "-deprecation", "-optimize"),
+//    crossScalaVersions := Seq("2.9.2", "2.10.0-RC1"),
+    scalacOptions ++= Seq("-unchecked", "-deprecation", "-optimize", "-feature", "-Yinline-warnings", "-language:existentials", "-language:implicitConversions", "-language:higherKinds", "-language:reflectiveCalls", "-language:postfixOps"),
     javacOptions ++= Seq("-target", "1.6", "-source", "1.6"),
     manifestSetting,
     publishSetting,
     resolvers ++= Seq( sonatypeNexusSnapshots, sonatypeNexusReleases),
     crossVersion := CrossVersion.full,
     artifact in (Compile, packageBin) <<= (artifact in Compile, scalaVersion) { (art: Artifact, sv) =>
-      sv match {
-        case "2.9.2" => art.copy(classifier = Some("scalaz7"))
-        case _ => art
-      }
+      art.copy(classifier = Some("mirror-binding"))
     }
   )
 

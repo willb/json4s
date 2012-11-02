@@ -44,7 +44,7 @@ object Extraction {
    * @throws MappingException is thrown if extraction fails
    */
   def extract[A](json: JValue)(implicit formats: Formats, mf: Manifest[A]): A = {
-    def allTypes(mf: Manifest[_]): List[Class[_]] = mf.erasure :: (mf.typeArguments flatMap allTypes)
+    def allTypes(mf: Manifest[_]): List[Class[_]] = mf.runtimeClass :: (mf.typeArguments flatMap allTypes)
 
     try {
       val types = allTypes(mf)
@@ -73,7 +73,7 @@ object Extraction {
     def prependTypeHint(clazz: Class[_], o: JObject) =
       JObject(JField(formats.typeHintFieldName, JString(formats.typeHints.hintFor(clazz))) :: o.obj)
 
-    def mkObject(clazz: Class[_], fields: List[JField]) = formats.typeHints.containsHint_?(clazz) match {
+    def mkObject(clazz: Class[_], fields: List[JField]) = formats.typeHints.containsHint(clazz) match {
       case true  => prependTypeHint(clazz, JObject(fields))
       case false => JObject(fields)
     }
@@ -86,7 +86,7 @@ object Extraction {
       any match {
         case null => JNull
         case x: JValue => x
-        case x if primitive_?(x.getClass) => primitive2jvalue(x)(formats)
+        case x if isPrimitive(x.getClass) => primitive2jvalue(x)(formats)
         case x: util.Collection[_] => JArray(x.asScala.toList map decompose)
         case x: Map[_, _] => JObject((x map { case (k: String, v) => JField(k, decompose(v)) }).toList)
         case x: Traversable[_] => JArray(x.toList map decompose)
@@ -130,7 +130,7 @@ object Extraction {
         case JDecimal(num)       => Map(path -> num.toString)
         case JInt(num)           => Map(path -> num.toString)
         case JBool(value)        => Map(path -> value.toString)
-        case JField(name, value) => flatten0(path + escapePath(name), value)
+//        case JField(name, value) => flatten0(path + escapePath(name), value)
         case JObject(obj)        => obj.foldLeft(Map[String, String]()) { case (map, (name, value)) =>
           map ++ flatten0(path + "." + escapePath(name), value)
         }

@@ -76,12 +76,12 @@ object Xml {
    * </pre>
    */
   def toJson(xml: NodeSeq): JValue = {
-    def empty_?(node: Node) = node.child.isEmpty
+    def isEmpty(node: Node) = node.child.isEmpty
 
     /* Checks if given node is leaf element. For instance these are considered leafs:
      * <foo>bar</foo>, <foo>{ doSomething() }</foo>, etc.
      */
-    def leaf_?(node: Node) = {
+    def isLeaf(node: Node) = {
       def descendant(n: Node): List[Node] = n match {
         case g: Group => g.nodes.toList.flatMap(x => x :: descendant(x))
         case _ => n.child.toList.flatMap { x => x :: descendant(x) }
@@ -90,7 +90,7 @@ object Xml {
       !descendant(node).find(_.isInstanceOf[Elem]).isDefined
     }
 
-    def array_?(nodeNames: Seq[String]) = nodeNames.size != 1 && nodeNames.toList.distinct.size == 1
+    def isArray(nodeNames: Seq[String]) = nodeNames.size != 1 && nodeNames.toList.distinct.size == 1
     def directChildren(n: Node): NodeSeq = n.child.filter(c => c.isInstanceOf[Elem])
     def nameOf(n: Node) = (if (n.prefix ne null) n.prefix + ":" else "") + n.label
     def buildAttrs(n: Node) = n.attributes.map((a: MetaData) => (a.key, XValue(a.value.text))).toList
@@ -123,17 +123,17 @@ object Xml {
 
     def buildNodes(xml: NodeSeq): List[XElem] = xml match {
       case n: Node =>
-        if (empty_?(n)) XLeaf((nameOf(n), XValue("")), buildAttrs(n)) :: Nil
-        else if (leaf_?(n)) XLeaf((nameOf(n), XValue(n.text)), buildAttrs(n)) :: Nil
+        if (isEmpty(n)) XLeaf((nameOf(n), XValue("")), buildAttrs(n)) :: Nil
+        else if (isLeaf(n)) XLeaf((nameOf(n), XValue(n.text)), buildAttrs(n)) :: Nil
         else {
           val children = directChildren(n)
           XNode(buildAttrs(n) ::: children.map(nameOf).toList.zip(buildNodes(children))) :: Nil
         }
       case nodes: NodeSeq => 
         val allLabels = nodes.map(_.label)
-        if (array_?(allLabels)) {
+        if (isArray(allLabels)) {
           val arr = XArray(nodes.toList.flatMap { n => 
-            if (leaf_?(n) && n.attributes.length == 0) XValue(n.text) :: Nil
+            if (isLeaf(n) && n.attributes.length == 0) XValue(n.text) :: Nil
             else buildNodes(n)
           })
           XLeaf((allLabels(0), arr), Nil) :: Nil
@@ -185,7 +185,7 @@ object Xml {
     }
   }
 
-  private[json4s] class XmlNode(name: String, children: Seq[Node]) extends Elem(null, name, xml.Null, TopScope, children :_*)
+  private[json4s] class XmlNode(name: String, children: Seq[Node]) extends Elem(null, name, xml.Null, TopScope, children.isEmpty, children :_*)
 
-  private[json4s] class XmlElem(name: String, value: String) extends Elem(null, name, xml.Null, TopScope, Text(value))
+  private[json4s] class XmlElem(name: String, value: String) extends Elem(null, name, xml.Null, TopScope, false, Text(value))
 }
