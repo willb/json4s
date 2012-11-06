@@ -18,6 +18,11 @@ package org.json4s
 
 import scala.tools.scalap.scalax.rules.scalasig._
 
+private[json4s] trait ReflectiveReader {
+  def readConstructor(argName: String, clazz: Class[_], typeArgIndex: Int, argNames: List[String]): Class[_]
+  def readField(name: String, clazz: Class[_], typeArgIndex: Int): Class[_]
+}
+
 private[json4s] object ScalaSigReader {
   def readConstructor(argName: String, clazz: Class[_], typeArgIndex: Int, argNames: List[String]): Class[_] = {
     val cl = findClass(clazz)
