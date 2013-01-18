@@ -95,7 +95,9 @@ object build extends Build {
           |import scala.tools.scalap.scalax.rules.scalasig._
         """.stripMargin
     )
-  ) dependsOn(ast % "compile;test->test")
+  ) dependsOn(
+    ast % "compile;test->test"
+  )
 
   lazy val native = Project(
     id = "json4s-native",
@@ -152,6 +154,12 @@ object build extends Build {
 //    settings = json4sSettings ++ Seq(libraryDependencies ++= jodaTime)
 //  ) dependsOn(jacksonSupport % "compile;test->test")
 //
+  lazy val macros = Project(
+    id = "json4s-macros",
+    base = file("macros"),
+    settings = json4sSettings ++ Seq(libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-reflect" % _))
+  ) dependsOn(core % "compile;test->test")
+  
   lazy val scalazExt = Project(
     id = "json4s-scalaz",
     base = file("scalaz"),
@@ -180,7 +188,7 @@ object build extends Build {
           |import scala.tools.scalap.scalax.rules.scalasig._
         """.stripMargin
     )
-  ) dependsOn(core, native, json4sExt, scalazExt, jacksonSupport, mongo)
+  ) dependsOn(core, native, json4sExt, scalazExt, jacksonSupport, mongo, macros)
 
   lazy val benchmark = Project(
     id = "json4s-benchmark",
