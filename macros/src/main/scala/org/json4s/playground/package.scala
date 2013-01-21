@@ -1,7 +1,5 @@
 package object playground {
 
-  implicit def map2valueProvider(m: Map[String, Any]): ValueProvider[Map[String, Any]] = new MapValueReader(m)
-
   object by {
     object Nothing extends Separator("", "")
     object Dots extends Separator(".", "")
