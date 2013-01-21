@@ -11,6 +11,7 @@ object Deserializer {
   
   import org.json4s.Macros.ParamsTpe
   
+  /*
   def asyncBuilder[U](params:ParamsTpe,name:String)(f:(U)=>Unit) = macro asyncimpl[U]
   
   def asyncimpl[U:c.WeakTypeTag](c: Context)(params: c.Expr[ParamsTpe],name:c.Expr[String])
@@ -19,9 +20,20 @@ object Deserializer {
       
       c.Expr[Unit](Apply(f.tree,List(classbuilder[U](c)(params,name).tree)))
   }
+  */
+  
+  def unpackObject[U](params:ParamsTpe) = macro unpackObject_impl[U]
+  def unpackObject_impl[U](c: Context)(params:c.Expr[ParamsTpe]):c.Expr[U] = {
+    import c.universe._
+    
+    reify{
+      
+    }
+    ???
+  }
   // The meat and potatoes of the implementation.
-  def classBuilder[U](params: ParamsTpe,name:String) = macro classbuilder[U]
-  def classbuilder[U: c.WeakTypeTag](c: Context)(params: c.Expr[ParamsTpe],name:c.Expr[String]):c.Expr[U] = {
+  def deserialize[U](params: ParamsTpe,name:String) = macro deserialize_impl[U]
+  def deserialize_impl[U: c.WeakTypeTag](c: Context)(params: c.Expr[ParamsTpe],name:c.Expr[String]):c.Expr[U] = {
     import c.universe._
     import Flag._
     
