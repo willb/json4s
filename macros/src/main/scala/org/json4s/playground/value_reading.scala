@@ -22,6 +22,11 @@ trait ValueProvider[S]  {
   def read(index: Int): Either[Throwable, Option[Any]] = allCatch either { get(index) }
   def get(index: Int): Option[Any]
   def apply(index: Int): Any = get(index) get
+  def indexCount:Int = {
+    keySet.map { rawKey =>
+      arraySeparator.getIndex(rawKey)
+    }.toSet size
+  }
 }
 
 object ValueProvider {
@@ -41,7 +46,6 @@ class MapValueReader(protected val data: Map[String, Any], val prefix: String = 
   def get(index: Int) = get(arraySeparator.wrapIndex(index))
   
   def get(key: String):Option[Any] = {
-    //println(s"Key: $key, prefix: $prefix")
     if (arraySeparator.startsWithArray(key)) data.get(prefix + key)
     else data.get(separated.wrap(key, prefix))
   }
