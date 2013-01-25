@@ -130,7 +130,8 @@ class MacroDeserializerSpec extends Specification {
     val stuff = new scala.collection.mutable.MutableList[ThingWithJunk]()
     val params = new scala.collection.mutable.HashMap[String,Any]
     import scala.util.Random
-    (0 until 20000) foreach{ i =>
+    val numObjs = 20000
+    (0 until numObjs) foreach{ i =>
       val thng = ThingWithJunk("name_"+i,Junk(Random.nextInt,"junker"+Random.nextInt))
       stuff += thng
       val str = "dd["+i.toString + "]"
@@ -144,7 +145,7 @@ class MacroDeserializerSpec extends Specification {
     stopwatch.start
     result = deserialize[List[ThingWithJunk]](mapParams,"dd")
     stopwatch.stop
-    println(s"--------------- Time: ${stopwatch.getElapsedTime*0.001} sec ------------------")
+    println(s"--------------- Time to deserialize $numObjs objects: ${stopwatch.getElapsedTime} millisec ------------------")
     result must_== stuff.toList
   }
   

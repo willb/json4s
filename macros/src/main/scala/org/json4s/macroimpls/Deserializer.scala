@@ -60,9 +60,11 @@ object Deserializer {
       )
       
       val wrappedIndexTree: c.Expr[String] = reify {
-        freshParams.splice.arraySeparator.wrapIndex( c.Expr[Int](Ident("items")).splice )
+        freshParams.splice.arraySeparator.wrapIndex( c.Expr[Int](Ident("i")).splice )
       }
-        
+      
+      /*     // This code isn't much faster, and takes quite a bit more to maintain.
+             // Because it builds in reverse order, it could be slower depending on the valueprovider
       reify{
         c.Expr(freshParamsTree).splice
         c.Expr(listTree).splice
@@ -77,6 +79,14 @@ object Deserializer {
           items-=1
         }
         c.Expr(Ident(listNme)).splice
+      }.tree
+      */
+      
+      reify{
+        c.Expr(freshParamsTree).splice
+        (0 until freshParams.splice.indexCount) map { i =>
+          c.Expr(buildObject(argTpe, wrappedIndexTree, freshParams)).splice
+        } toList
       }.tree
     } // rparseList
      
@@ -234,7 +244,7 @@ object Deserializer {
     
     val tpe = weakTypeOf[U]
     val expr = c.Expr[U](buildObject(tpe,name,params))
-    println(expr)
+    // println(expr)  // Debug
     expr
   }
 }
