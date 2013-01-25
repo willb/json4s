@@ -133,7 +133,7 @@ class MacroDeserializerSpec extends Specification {
     (0 until 20000) foreach{ i =>
       val thng = ThingWithJunk("name_"+i,Junk(Random.nextInt,"junker"+Random.nextInt))
       stuff += thng
-      val str = "dd."+i.toString
+      val str = "dd["+i.toString + "]"
       params+= str+".name" -> thng.name
       params+= str+".junk.in1" -> thng.junk.in1.toString
       params+= str+".junk.in2" -> thng.junk.in2
@@ -301,7 +301,7 @@ class MacroDeserializerSpec extends Specification {
 		// This fails to compile: complains about type parameters for List
 	"parse List[Int]" in {
       val expected = 1::2::3::4::Nil
-      val params = Map("d.0"->"1","d.1"->"2","d.2"->"3","d.3"->"4")
+      val params = Map("d[0]"->"1","d[1]"->"2","d[2]"->"3","d[3]"->"4")
 	  
 	  val result = deserialize[List[Int]](params,"d")
 	   
@@ -310,7 +310,7 @@ class MacroDeserializerSpec extends Specification {
 	
 	"parse List[WithTpeParams[String]]" in {
       val expected = WithTpeParams("one")::WithTpeParams("two")::Nil
-      val params = Map("d.0.in1"->"one","d.1.in1"->"two")
+      val params = Map("d[0].in1"->"one","d[1].in1"->"two")
 	  
 	  val result = deserialize[List[WithTpeParams[String]]](params,"d")
 	   
@@ -327,30 +327,30 @@ class MacroDeserializerSpec extends Specification {
   
 	"parse List[List[Int]]" in {
       val expected = (1::2::Nil)::(3::4::Nil)::Nil
-      val params = Map("d.0.0"->"1","d.0.1"->"2","d.1.0"->"3","d.1.1"->"4")
+      val params = Map("d[0][0]"->"1","d[0][1]"->"2","d[1][0]"->"3","d[1][1]"->"4")
 	  
 	  val result = deserialize[List[List[Int]]](params,"d")
 	   
 	  result must_== expected
   }
-	
+	 
 	"Parse WithList" in {
 	  val expected = WithList("Bob", 1::4::Nil)
-	  val params = Map("d.name"->"Bob","d.lst.0"->"1","d.lst.1"->"4")
+	  val params = Map("d.name"->"Bob","d.lst[0]"->"1","d.lst[1]"->"4")
 	  deserialize[WithList](params,"d") must_== expected
 	}
 	
 	"parse WithObjList" in {
 	//case class ThingWithJunk(name:String, junk:Junk)
       val expected = WithObjList("Bob",ThingWithJunk("Bobby",Junk(1,"one"))::ThingWithJunk("Bill",Junk(2,"two"))::Nil)
-      val params = Map("d.name"->"Bob","d.list.1.name"->"Bill","d.list.0.name"->"Bobby","d.list.0.junk.in1"->"1","d.list.0.junk.in2"->"one","d.list.1.junk.in1"->"2","d.list.1.junk.in2"->"two")
+      val params = Map("d.name"->"Bob","d.list[1].name"->"Bill","d.list[0].name"->"Bobby","d.list[0].junk.in1"->"1","d.list[0].junk.in2"->"one","d.list[1].junk.in1"->"2","d.list[1].junk.in2"->"two")
       deserialize[WithObjList](params,"d") must_== expected
     }
-	
+	 
 	"parse List[Bill]" in {
 	//case class ThingWithJunk(name:String, junk:Junk)
       val expected = Bill(1)::Bill(3)::Nil
-      val params = Map("d.0.in"->"1","d.1.in"->"3","d.1.d1"->"4","d.0.1"->"2")
+      val params = Map("d[0].in"->"1","d[1].in"->"3")
       deserialize[List[Bill]](params,"d") must_== expected
     }
 	
