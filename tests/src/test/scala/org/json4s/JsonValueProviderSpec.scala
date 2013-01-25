@@ -33,6 +33,11 @@ class JsonValueProviderSpec extends Specification {
       provider("content.fish.pigs") must_== (json2 \ "content" \ "fish" \ "pigs")
     }
     
+    "Select a list" in {
+      val provider = new JsonValueProvider(json2.asInstanceOf[JObject])
+      provider("content") must_== (json2 \ "content")
+    }
+    
     "Traverse multiple indexes" in {
       val provider = new JsonValueProvider(json2.asInstanceOf[JObject])
       provider("content[1][0]") must_== JInt(1)

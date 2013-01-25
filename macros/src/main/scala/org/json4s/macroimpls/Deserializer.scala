@@ -21,16 +21,7 @@ object Deserializer {
       c.Expr[Unit](Apply(f.tree,List(classbuilder[U](c)(params,name).tree)))
   }
   */
-  
-  def unpackObject[U](params:ParamsTpe) = macro unpackObject_impl[U]
-  def unpackObject_impl[U](c: Context)(params:c.Expr[ParamsTpe]):c.Expr[U] = {
-    import c.universe._
-    
-    reify{
-      
-    }
-    ???
-  }
+
   // The meat and potatoes of the implementation.
   def deserialize[U](params: ParamsTpe,name:String) = macro deserialize_impl[U]
   def deserialize_impl[U: c.WeakTypeTag](c: Context)(params: c.Expr[ParamsTpe],name:c.Expr[String]):c.Expr[U] = {
@@ -66,18 +57,21 @@ object Deserializer {
                       listNme,
                       typeArgumentTree(tpe),
                       reify{Nil}.tree
-        )
+      )
+      
+      val wrappedIndexTree: c.Expr[String] = reify {
+        freshParams.splice.arraySeparator.wrapIndex( c.Expr[Int](Ident("items")).splice )
+      }
         
       reify{
         c.Expr(freshParamsTree).splice
         c.Expr(listTree).splice
         var items = freshParams.splice.keyCount-1
         while(items >= 0) {
-          val itemnumber = items.toString
           // Manual tree manipulation is fastest, but more subject to scala churn
           c.Expr{Assign(Ident(listNme),Apply(Select(Ident(listNme),
               newTermName("$colon$colon")),
-              List(buildObject(argTpe, c.Expr[String](Ident("itemnumber")),freshParams))))
+              List(buildObject(argTpe, wrappedIndexTree, freshParams))))
           }.splice
           
           items-=1
@@ -239,6 +233,8 @@ object Deserializer {
     }
     
     val tpe = weakTypeOf[U]
-    c.Expr[U](buildObject(tpe,name,params))
+    val expr = c.Expr[U](buildObject(tpe,name,params))
+    println(expr)
+    expr
   }
 }

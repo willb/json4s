@@ -6,14 +6,16 @@ abstract class ArraySeparator(val beginning:String, val end: String) {
   // We require a beginning otherwise name collisions could occure
   val hasEnd = end != null && end.trim.nonEmpty
   
-  def isArray(key: String): Boolean = key.startsWith(beginning)
+  def startsWithArray(key: String): Boolean = key.startsWith(beginning)
   
-  def appendIndex(key: String, index: Int): String = {
-    if (hasEnd) key + beginning + index.toString + end
-    else key + beginning + index.toString
+  def wrapIndex(index: Int): String = {
+    if (hasEnd) beginning + index.toString + end
+    else beginning + index.toString
   }
   
-  def hasArray(key: String): Boolean = key.indexOf(beginning) > 0
+  def appendIndex(key: String, index: Int): String = key + wrapIndex(index)
+
+  def hasArray(key: String): Boolean = key.indexOf(beginning) >= 0
   
   def getIndex(key: String): Option[Int] = {
     val indexStart = key.indexOf(beginning)+beginning.length
@@ -31,13 +33,15 @@ abstract class ArraySeparator(val beginning:String, val end: String) {
     if(indexStart < 0) return (key,"")
     
     val indexEnd = if (hasEnd) {
-      key.indexOf(end)+end.length 
+      key.indexOf(end) + end.length 
     } else {
-      val i = key.substring(indexStart+beginning.length,key.length).indexOf(beginning)+beginning.length
+      val i = key.substring(indexStart+beginning.length,key.length).indexOf(beginning) + beginning.length
       if (i < 0) key.length else i+indexStart
     }
     
     (key.substring(0,indexStart), key.substring(indexEnd,key.length))
   }
+  
+  
 
 }

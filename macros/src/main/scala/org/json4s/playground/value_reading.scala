@@ -6,7 +6,7 @@ trait ValueProvider[S]  {
   def prefix: String
   protected def data: S
   def separated: Separator
-  def indexSeparator: ArraySeparator
+  def arraySeparator: ArraySeparator
   def read(key: String): Either[Throwable, Option[Any]] = allCatch either { get(key) }
   def get(key: String): Option[Any]
   def apply(key: String): Any = get(key) get
@@ -16,8 +16,12 @@ trait ValueProvider[S]  {
   def keyCount:Int = keySet.size
   def --(keys: Iterable[String]): ValueProvider[S]
   def isComplex(key: String): Boolean
-  def isArray(key: String): Boolean
   def contains(key: String): Boolean
+  
+  def isArray(key: String): Boolean
+  def read(index: Int): Either[Throwable, Option[Any]] = allCatch either { get(index) }
+  def get(index: Int): Option[Any]
+  def apply(index: Int): Any = get(index) get
 }
 
 object ValueProvider {
@@ -29,14 +33,26 @@ object MapValueReader {
   
   def apply(data: Map[String, Any], separated: Separator = by.Dots) = new MapValueReader(data, separated = separated)
 }
-
+// TODO: make work with array style
 class MapValueReader(protected val data: Map[String, Any], val prefix: String = "", val separated: Separator = by.Dots) extends ValueProvider[Map[String, Any]] {
 
-  def indexSeparator: ArraySeparator = ???
+  def arraySeparator: ArraySeparator = squareBraketArraySeparator
   
-  def get(key: String):Option[Any] = data.get(separated.wrap(key, prefix))
+  def get(index: Int) = get(arraySeparator.wrapIndex(index))
+  
+  def get(key: String):Option[Any] = {
+    //println(s"Key: $key, prefix: $prefix")
+    if (arraySeparator.startsWithArray(key)) data.get(prefix + key)
+    else data.get(separated.wrap(key, prefix))
+  }
 
-  def forPrefix(key: String): ValueProvider[Map[String, Any]] = new MapValueReader(data, separated.wrap(key, prefix), separated)
+  def forPrefix(key: String): ValueProvider[Map[String, Any]] = new MapValueReader(
+    data,
+    if (arraySeparator.startsWithArray(key)) separated.wrap(prefix + key)
+    else separated.wrap(key, prefix),
+    separated
+  )
+  
   
   lazy val values: Map[String, Any] = stripPrefix(data)
 
