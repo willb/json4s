@@ -12,6 +12,11 @@ object JsonValueProvider {
   
 class JsonValueProvider(override protected val data:JValue, val prefix:String = "") extends ValueProvider[JValue] {
 
+  def get(index: Int): Option[Any] = data match {
+    case JArray(arr) => Some(arr(index))
+    case _ => None
+  }
+
   lazy val keySet: Set[String] = data match {
     case obj:JObject => obj.obj.map { case (k,jv) => k } toSet
     case arr:JArray  => (0 until arr.arr.length) map { _.toString } toSet
@@ -19,7 +24,7 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
   }
   
   val separated: Separator = by.Dots
-  def indexSeparator: ArraySeparator = squareBraketArraySeparator
+  def arraySeparator: ArraySeparator = squareBraketArraySeparator
 
   def contains(key: String): Boolean = get(key) match {
     case Some(_) => true
@@ -47,9 +52,15 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
   def values: JValue = data // Seems redundent
   
   protected def get(path: String, jv: JValue):Option[JValue] = {
-    val (part,rest) = indexSeparator.stripFirstIndex(path)
-    if(indexSeparator.isArray(path)) {  // Started with array indexing
-      val index = indexSeparator.getIndex(path).get
+    
+    // Rely only on the AST, not pimping functions from MonadicJValue
+    def objPart(jv: JValue,key:String): JValue = jv match {
+      case JObject(l) => (l.find ( _._1 == key)) map (_._2) getOrElse JNothing
+      case _ => JNothing
+    }
+    val (part,rest) = arraySeparator.stripFirstIndex(path)
+    if(arraySeparator.startsWithArray(path)) {  // Started with array indexing
+      val index = arraySeparator.getIndex(path).get
       if (rest.isEmpty ) {
         Some(jv(index))
       } else {
@@ -61,11 +72,11 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
         )
       }
     } else {  // Didn't start with a array indexing selection
-      indexSeparator.getIndex(path) match {
-        case Some(i) if rest.isEmpty => Some((jv \ part)(i))
-        case Some(i) => get (rest, (jv \ part)(i))
-        case None if rest.isEmpty => Some(jv \ part)
-        case None => get (rest, jv \ part)
+      arraySeparator.getIndex(path) match {
+        case Some(i) if rest.isEmpty => Some(objPart(jv,part)(i))
+        case Some(i) => get (rest, objPart(jv,part)(i))
+        case None if rest.isEmpty => Some(objPart(jv, part))
+        case None => get (rest, objPart(jv,part))
       }
     }
   }
