@@ -49,7 +49,7 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
     case _ => false
   }} getOrElse false
   
-  def values: JValue = data // Seems redundent
+  def values: JValue = data // Seems redundant
   
   protected def get(path: String, jv: JValue):Option[JValue] = {
     
