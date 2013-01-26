@@ -34,7 +34,7 @@ case class BillyB(in:Int) extends Billy[Int](in)
 
 case class WithDate(name:String, date: Date) {
   override def equals(in:Any) = in match {
-    case that: WithDate => name == that.name && date.toString ==that.date.toString
+    case that: WithDate => name == that.name && date.toString == that.date.toString
 	case _ => false
   }
 }
@@ -92,9 +92,7 @@ class MacroDeserializerSpec extends Specification {
   implicit val defaultFormats = DefaultFormats
   val refJunk = Junk(2,"cats")
   val refJunkDict = Map("d.in1"->refJunk.in1.toString,"d.in2"->refJunk.in2)
-  
-  //implicit val defaultDateFormat = new DateFormat("EEE MMM d HH:mm:ss zzz yyyy")
-  
+
   "Macros.deserialize" should {
   
   "Build maps of primatives with string key" in {
@@ -211,7 +209,7 @@ class MacroDeserializerSpec extends Specification {
   
 	"Parse date info" in {
 	  val expected = WithDate("Bob",new Date)
-	  val params = Map("d.name"->"Bob","d.date"->expected.date.toString)
+	  val params = Map("d.name"->"Bob","d.date"->defaultFormats.dateFormat.format(expected.date))
 	  
 	  deserialize[WithDate](params,"d") must_== expected
 	}
