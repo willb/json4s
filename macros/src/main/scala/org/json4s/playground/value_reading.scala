@@ -41,7 +41,7 @@ object MapValueReader {
 // TODO: make work with array style
 class MapValueReader(protected val data: Map[String, Any], val prefix: String = "", val separated: Separator = by.Dots) extends ValueProvider[Map[String, Any]] {
 
-  def arraySeparator: ArraySeparator = squareBraketArraySeparator
+  def arraySeparator: ArraySeparator = squareBracketArraySeparator
   
   def get(index: Int) = get(arraySeparator.wrapIndex(index))
   
