@@ -24,7 +24,6 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
   }
   
   val separated: Separator = by.Dots
-  def arraySeparator: ArraySeparator = squareBracketArraySeparator
 
   def contains(key: String): Boolean = get(key) match {
     case Some(_) => true
@@ -58,9 +57,9 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
       case JObject(l) => (l.find ( _._1 == key)) map (_._2) getOrElse JNothing
       case _ => JNothing
     }
-    val (part,rest) = arraySeparator.stripFirstIndex(path)
-    if(arraySeparator.startsWithArray(path)) {  // Started with array indexing
-      val index = arraySeparator.getIndex(path).get
+    val (part,rest) = separated.stripFirstIndex(path)
+    if(separated.startsWithArray(path)) {  // Started with array indexing
+      val index = separated.getIndex(path).get
       if (rest.isEmpty ) {
         Some(jv(index))
       } else {
@@ -72,7 +71,7 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
         )
       }
     } else {  // Didn't start with a array indexing selection
-      arraySeparator.getIndex(path) match {
+      separated.getIndex(path) match {
         case Some(i) if rest.isEmpty => Some(objPart(jv,part)(i))
         case Some(i) => get (rest, objPart(jv,part)(i))
         case None if rest.isEmpty => Some(objPart(jv, part))

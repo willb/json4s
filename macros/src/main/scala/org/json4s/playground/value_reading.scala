@@ -6,7 +6,6 @@ trait ValueProvider[S]  {
   def prefix: String
   protected def data: S
   def separated: Separator
-  def arraySeparator: ArraySeparator
   def read(key: String): Either[Throwable, Option[Any]] = allCatch either { get(key) }
   def get(key: String): Option[Any]
   def apply(key: String): Any = get(key) get
@@ -24,7 +23,7 @@ trait ValueProvider[S]  {
   def apply(index: Int): Any = get(index) get
   def indexCount:Int = {
     keySet.map { rawKey =>
-      arraySeparator.getIndex(rawKey)
+      separated.getIndex(rawKey)
     }.toSet size
   }
 }
@@ -40,19 +39,17 @@ object MapValueReader {
 }
 // TODO: make work with array style
 class MapValueReader(protected val data: Map[String, Any], val prefix: String = "", val separated: Separator = by.Dots) extends ValueProvider[Map[String, Any]] {
-
-  def arraySeparator: ArraySeparator = squareBracketArraySeparator
   
-  def get(index: Int) = get(arraySeparator.wrapIndex(index))
+  def get(index: Int) = get(separated.wrapIndex(index))
   
   def get(key: String):Option[Any] = {
-    if (arraySeparator.startsWithArray(key)) data.get(prefix + key)
+    if (separated.startsWithArray(key)) data.get(prefix + key)
     else data.get(separated.wrap(key, prefix))
   }
 
   def forPrefix(key: String): ValueProvider[Map[String, Any]] = new MapValueReader(
     data,
-    if (arraySeparator.startsWithArray(key)) separated.wrap(prefix + key)
+    if (separated.startsWithArray(key)) separated.wrap(prefix + key)
     else separated.wrap(key, prefix),
     separated
   )

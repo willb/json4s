@@ -60,7 +60,7 @@ object Deserializer {
       )
       
       val wrappedIndexTree: c.Expr[String] = reify {
-        freshParams.splice.arraySeparator.wrapIndex( c.Expr[Int](Ident("i")).splice )
+        freshParams.splice.separated.wrapIndex( c.Expr[Int](Ident("i")).splice )
       }
       
       /*     // This code isn't much faster, and takes quite a bit more to maintain.
