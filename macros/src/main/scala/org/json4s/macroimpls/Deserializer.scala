@@ -67,25 +67,6 @@ object Deserializer {
         freshParams.splice.separated.wrapIndex( c.Expr[Int](Ident("i")).splice )
       }
       
-      /*     // This code isn't much faster, and takes quite a bit more to maintain.
-             // Because it builds in reverse order, it could be slower depending on the valueprovider
-      reify{
-        c.Expr(freshParamsTree).splice
-        c.Expr(listTree).splice
-        var items = freshParams.splice.keyCount-1
-        while(items >= 0) {
-          // Manual tree manipulation is fastest, but more subject to scala churn
-          c.Expr{Assign(Ident(listNme),Apply(Select(Ident(listNme),
-              newTermName("$colon$colon")),
-              List(buildObject(argTpe, wrappedIndexTree, freshParams))))
-          }.splice
-          
-          items-=1
-        }
-        c.Expr(Ident(listNme)).splice
-      }.tree
-      */
-      
       reify{
         c.Expr(freshParamsTree).splice
         (0 until freshParams.splice.indexCount) map { i =>
@@ -115,7 +96,7 @@ object Deserializer {
             List(typeArgumentTree(keyTpe), typeArgumentTree(valTpe))
           )
         )
-      // code comlains of unknown type if we try to use c.Expr().splice for some reason
+
       val addValTree = Apply(Select(Ident("b"),newTermName("update")),
                             List(keyParser.tree,buildObject(valTpe,kExpr,freshParams))
                             )
@@ -133,10 +114,9 @@ object Deserializer {
       }.tree
     }
     
-    def rparseDate(iname:c.Expr[String], params: c.Expr[ParamsTpe])  = reify { 
-      val name = iname.splice
+    def rparseDate(name:c.Expr[String], params: c.Expr[ParamsTpe])  = reify {
       //(dtf.splice).parse(getArg(name,params.splice))
-      new Date
+      getDate(name.splice,params.splice(name.splice),defaultFormats.splice.dateFormat)
     }
     
     def rparseInt(name:c.Expr[String], params: c.Expr[ParamsTpe])    = reify {
