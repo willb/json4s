@@ -24,7 +24,7 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
   }
   
   val separated: Separator = by.Dots
-  def arraySeparator: ArraySeparator = squareBraketArraySeparator
+  def arraySeparator: ArraySeparator = squareBracketArraySeparator
 
   def contains(key: String): Boolean = get(key) match {
     case Some(_) => true
