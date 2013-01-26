@@ -1,5 +1,7 @@
 package playground
 
+import annotation.tailrec
+
 abstract class Separator(val beginning: String, end: String, val arrayBeginning:String, val arrayEnd: String) {
 
   val hasBeginning = beginning != null && beginning.trim.nonEmpty
@@ -21,6 +23,11 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
     sb.toString()
   }
 
+  // TODO: make this friendly to arrays
+  /** Strips the separators from around the first key
+    * eg, stripFirst("[foo][bar]") -> "foo[bar]"
+
+   */
   def stripFirst(key: String) = {
     val endIndex = if (hasEnd) key.indexOf(end) else -1
     def rest = {
@@ -28,15 +35,19 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
       val hasMore = key.size > (realEnd + 1)
       if (hasMore) key.substring(realEnd) else ""
     }
+
     if (hasBeginning && key.startsWith(beginning)) {
       if (hasEnd && endIndex > -1) {
          key.substring(beginning.size, endIndex) + rest
       } else key.substring(beginning.size)
     } else if (hasBeginning && hasEnd && endIndex > -1 && endIndex < key.indexOf(beginning)) {
       key.substring(0, endIndex) + rest
+    } else if (startsWithIndex(key)) {
+       getIndex(key).get + splitAtFirstIndex(key)._2
     } else key
   }
 
+  // TODO: Consider how to deal with arrays, or not deal with them and punt to an array friendly method
   def topLevelOnly(key: String, prefix: String = "") = {
     val path = stripPrefix(key, prefix)
     val startIndex = path.indexOf(beginning)
@@ -51,6 +62,10 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
   }
 
   def stripPrefix(path: String, prefix: String) = {
+    val realPrefix = if (endsWithIndex(prefix)) {
+
+    } else prefix
+
     val hasPrefix = prefix != null && prefix.trim.nonEmpty
     if (hasPrefix && path.startsWith(prefix)) {
       stripFirst(path.substring(prefix.length))
@@ -61,14 +76,28 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
   // ArraySeparator methods
   val arrayHasEnd = arrayEnd != null && arrayEnd.trim.nonEmpty
 
-  def startsWithArray(key: String): Boolean = key.startsWith(arrayBeginning)
+  @inline
+  def startsWithIndex(key: String): Boolean = key.startsWith(arrayBeginning)
+
+  def endsWithIndex(key: String): Boolean = {
+    var i: String = key
+    var continue = true
+    while (continue) {
+      val (a,b) = splitAtFirstIndex(i)
+      if (a == i) continue = false
+      else i = b
+    }
+
+    i == (if (hasEnd) end else "")
+  }
 
   def wrapIndex(index: Int): String = {
     if (arrayHasEnd) arrayBeginning + index.toString + arrayEnd
     else arrayBeginning + index.toString
   }
 
-  def appendIndex(key: String, index: Int): String = key + wrapIndex(index)
+  @inline
+  def appendIndex(key: String, index: Int): String =  key + wrapIndex(index)
 
   def hasArray(key: String): Boolean = key.indexOf(arrayBeginning) >= 0
 
@@ -82,8 +111,8 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
     }
   }
 
-  // Gives the start and the remainder
-  def stripFirstIndex(key: String): (String,String) = {
+  // Gives the strings before and after the first index
+  def splitAtFirstIndex(key: String): (String,String) = {
     val indexStart = key.indexOf(arrayBeginning)
     if(indexStart < 0) return (key,"")
 
@@ -95,6 +124,20 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
     }
 
     (key.substring(0,indexStart), key.substring(indexEnd,key.length))
+  }
+
+  def stripTailingIndex(key: String): String = {
+    @tailrec
+    def findLastIndex(key: String, i:Int): Int = {
+      val index = key.indexOf(arrayBeginning)
+      if (index <= 0) i
+      else {
+        val (_,b) = key.splitAt(index)
+        findLastIndex(b,index)
+      }
+    }
+
+    key.substring(0,findLastIndex(key,0)) + ( if (hasEnd) end else "" )
   }
 
 }

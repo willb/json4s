@@ -57,8 +57,8 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
       case JObject(l) => (l.find ( _._1 == key)) map (_._2) getOrElse JNothing
       case _ => JNothing
     }
-    val (part,rest) = separated.stripFirstIndex(path)
-    if(separated.startsWithArray(path)) {  // Started with array indexing
+    val (part,rest) = separated.splitAtFirstIndex(path)
+    if(separated.startsWithIndex(path)) {  // Started with array indexing
       val index = separated.getIndex(path).get
       if (rest.isEmpty ) {
         Some(jv(index))
