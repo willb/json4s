@@ -2,6 +2,7 @@ package playground
 
 object squareBracketArraySeparator extends ArraySeparator("[","]")
 
+// This needs to get merged into the separator. It only makes sense to have one
 abstract class ArraySeparator(val arrayBeginning:String, val arrayEnd: String) {
   // We require a beginning otherwise name collisions could occur
   val hasEnd = arrayEnd != null && arrayEnd.trim.nonEmpty
