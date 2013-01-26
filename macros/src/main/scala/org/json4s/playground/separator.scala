@@ -1,6 +1,6 @@
 package playground
 
-abstract class Separator(val beginning: String, end: String) {
+abstract class Separator(val beginning: String, end: String, val arrayBeginning:String, val arrayEnd: String) {
 
   val hasBeginning = beginning != null && beginning.trim.nonEmpty
   val hasEnd = end != null && end.trim.nonEmpty
@@ -57,4 +57,44 @@ abstract class Separator(val beginning: String, end: String) {
     }
     else stripFirst(path)
   }
+
+  // ArraySeparator methods
+  val arrayHasEnd = arrayEnd != null && arrayEnd.trim.nonEmpty
+
+  def startsWithArray(key: String): Boolean = key.startsWith(arrayBeginning)
+
+  def wrapIndex(index: Int): String = {
+    if (arrayHasEnd) arrayBeginning + index.toString + arrayEnd
+    else arrayBeginning + index.toString
+  }
+
+  def appendIndex(key: String, index: Int): String = key + wrapIndex(index)
+
+  def hasArray(key: String): Boolean = key.indexOf(arrayBeginning) >= 0
+
+  def getIndex(key: String): Option[Int] = {
+    val indexStart = key.indexOf(arrayBeginning)+arrayBeginning.length
+    val indexEnd = if (arrayHasEnd) key.indexOf(arrayEnd) else key.length
+    try {
+      Some(key.substring(indexStart, indexEnd) toInt)
+    } catch {
+      case _: Throwable => None
+    }
+  }
+
+  // Gives the start and the remainder
+  def stripFirstIndex(key: String): (String,String) = {
+    val indexStart = key.indexOf(arrayBeginning)
+    if(indexStart < 0) return (key,"")
+
+    val indexEnd = if (arrayHasEnd) {
+      key.indexOf(arrayEnd) + arrayEnd.length
+    } else {
+      val i = key.substring(indexStart+arrayBeginning.length,key.length).indexOf(arrayBeginning) + arrayBeginning.length
+      if (i < 0) key.length else i+indexStart
+    }
+
+    (key.substring(0,indexStart), key.substring(indexEnd,key.length))
+  }
+
 }
