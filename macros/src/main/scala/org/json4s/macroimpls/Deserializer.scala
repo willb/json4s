@@ -3,13 +3,16 @@ package org.json4s.macroimpls
 import language.experimental.macros
 import scala.reflect.macros.Context
 
-import java.util.Date
+
 
 object Deserializer {
   import macrohelpers._
   import PrimativeHelpers._
   
   import org.json4s.Macros.ParamsTpe
+
+  import java.util.Date
+  import org.json4s.Formats
   
   /*
   def asyncBuilder[U](params:ParamsTpe,name:String)(f:(U)=>Unit) = macro asyncimpl[U]
@@ -23,12 +26,13 @@ object Deserializer {
   */
 
   // The meat and potatoes of the implementation.
-  def deserialize[U](params: ParamsTpe,name:String) = macro deserialize_impl[U]
-  def deserialize_impl[U: c.WeakTypeTag](c: Context)(params: c.Expr[ParamsTpe],name:c.Expr[String]):c.Expr[U] = {
+  def deserialize[U](params: ParamsTpe,name:String)(implicit defaultFormats: Formats) = macro deserialize_impl[U]
+  def deserialize_impl[U: c.WeakTypeTag](c: Context)(params: c.Expr[ParamsTpe],name:c.Expr[String])
+          (defaultFormats: c.Expr[Formats]):c.Expr[U] = {
+
     import c.universe._
     import Flag._
-    
-    // Some helper functions moved to declutter
+
     val helpers = new MacroHelpers[c.type](c)
     import helpers._
     

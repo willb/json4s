@@ -11,7 +11,7 @@ case class NotSimple(one:Int,simple:Simple)
 case class ObjWithListMap(lst:List[Int],map:Map[String,Int])
 
 class MacroSerializerSpec extends Specification {
-  sequential
+  implicit val defaultFormats = DefaultFormats
   
   def jsonPrint(value:JValue) = compact(render(value))
   
