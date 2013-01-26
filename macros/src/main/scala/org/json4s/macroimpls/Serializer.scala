@@ -3,7 +3,7 @@ package org.json4s.macroimpls
 import language.experimental.macros
 import scala.reflect.macros.Context
 
-import org.json4s.{JsonWriter,JValue}
+import org.json4s.{Formats, JsonWriter, JValue}
 import macrohelpers._
 
 
@@ -56,8 +56,9 @@ object Serializer {
     def result = current.result
   }
 
-  def serialize[U](obj:U, name:String, writer: Writer) = macro impl[U]
-  def impl[U:c.WeakTypeTag](c: Context)(obj: c.Expr[U], name: c.Expr[String], writer: c.Expr[Writer]):c.Expr[Unit] = {
+  def serialize[U](obj:U, name:String, writer: Writer)(implicit defaultFormats: Formats) = macro impl[U]
+  def impl[U:c.WeakTypeTag](c: Context)(obj: c.Expr[U], name: c.Expr[String], writer: c.Expr[Writer])
+                           (defaultFormats: c.Expr[Formats]):c.Expr[Unit] = {
                       
     import c.universe._
     val helpers = new macrohelpers.MacroHelpers[c.type](c)
@@ -69,8 +70,9 @@ object Serializer {
       val writerStack = new WriterStack(writer.splice)
     }.tree
     val writerStack = c.Expr[WriterStack](Ident("writerStack"))
-    
-    val primativeTypes = typeOf[Int]::typeOf[String]::
+
+    // TODO: Add Date and Symbol abilities
+    val primitiveTypes = typeOf[Int]::typeOf[String]::
                           typeOf[Float]::typeOf[Double]::
                           typeOf[Boolean]::typeOf[Long]::
                           typeOf[Byte]::typeOf[BigInt]::
@@ -84,7 +86,7 @@ object Serializer {
         reify{}
       } else reify{writerStack.splice.startField(name.splice)}
       
-      if(primativeTypes.exists(_ =:= tpe)) { // Must be primative
+      if(primitiveTypes.exists(_ =:= tpe)) { // Must be primative
         reify{
           startFieldExpr.splice
           writerStack.splice.primative(c.Expr(path).splice)
@@ -106,7 +108,7 @@ object Serializer {
       else if(tpe <:< typeOf[scala.collection.GenMap[Any,Any]].erasure) {
         val TypeRef(_,_,keyTpe::valTpe::Nil) = tpe
         
-        if(!primativeTypes.exists(_ =:= keyTpe)) {
+        if(!primitiveTypes.exists(_ =:= keyTpe)) {
           c.abort(c.enclosingPosition,
             s"Maps nees to have keys of primative type! Type: $keyTpe")
         }
