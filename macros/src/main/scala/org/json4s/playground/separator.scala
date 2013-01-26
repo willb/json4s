@@ -61,6 +61,9 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
     }
   }
 
+  /* Will be really challenging to fix...
+     Need stripPrefix("cats[dogs(0)][pigs]", cats[dogs] -> "0[pigs]"
+   */
   def stripPrefix(path: String, prefix: String) = {
     val realPrefix = if (endsWithIndex(prefix)) {
 
