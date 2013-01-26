@@ -43,13 +43,13 @@ class MapValueReader(protected val data: Map[String, Any], val prefix: String = 
   def get(index: Int) = get(separated.wrapIndex(index))
   
   def get(key: String):Option[Any] = {
-    if (separated.startsWithArray(key)) data.get(prefix + key)
+    if (separated.startsWithIndex(key)) data.get(prefix + key)
     else data.get(separated.wrap(key, prefix))
   }
    // TODO: This needs to be modified to accommodate prefixing indexes
   def forPrefix(key: String): ValueProvider[Map[String, Any]] = new MapValueReader(
     data,
-    if (separated.startsWithArray(key)) separated.wrap(prefix + key) // This may not work for all seporators
+    if (separated.startsWithIndex(key)) separated.wrap(prefix + key) // This may not work for all separators
     else separated.wrap(key, prefix),
     separated
   )
