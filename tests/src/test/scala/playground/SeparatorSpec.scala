@@ -2,10 +2,10 @@ package playground
 
 import org.specs2.mutable.Specification
 
-class ArraySeparatorSpec extends Specification {
+class SeparatorSpec extends Specification {
   
-  "BraketArraySeparator" should {
-    val sep = squareBracketArraySeparator
+  "Bracket Separator" should {
+    val sep = by.Dots
     
     "Wrap index" in {
       sep.wrapIndex(4) must_== "[4]"
@@ -34,7 +34,7 @@ class ArraySeparatorSpec extends Specification {
   }
   
   "DoubleBraketArraySeparator" should {
-    val sep = new ArraySeparator("[[","]]") {}
+    val sep = new Separator(".", "", "[[","]]") {}
     
     "Wrap index" in {
       sep.wrapIndex(4) must_== "[[4]]"
@@ -63,7 +63,7 @@ class ArraySeparatorSpec extends Specification {
   }
   
   "LeftBraketArraySeparator" should {
-    val sep = new ArraySeparator("[","") {}
+    val sep = new Separator(".", "", "[", "") {}
     
     "Wrap index" in {
       sep.wrapIndex(4) must_== "[4"
@@ -91,7 +91,7 @@ class ArraySeparatorSpec extends Specification {
   }
   
   "CrazyBraketArraySeparator" should {
-    val sep = new ArraySeparator("({[","$$%^") {}
+    val sep = new Separator(".", "", "({[","$$%^") {}
     
     "Wrap index" in {
       sep.wrapIndex(4) must_== "({[4$$%^"
