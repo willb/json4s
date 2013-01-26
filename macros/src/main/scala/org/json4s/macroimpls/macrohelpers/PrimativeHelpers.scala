@@ -6,9 +6,7 @@ import scala.reflect.macros.Context
 import org.json4s.ParserUtil.ParseException
 
 object PrimativeHelpers {
-
-// TODO: fix use real json4s formatters
-  val defaultDateFormat = new java.text.SimpleDateFormat("EEE MMM d HH:mm:ss zzz yyyy")
+  import java.text.SimpleDateFormat
   
   // Some helpers to make things a little more simple in the generated code
   def getInt(name:String,in:Any):Int = in match {
@@ -57,9 +55,9 @@ object PrimativeHelpers {
     case s => s.toString
   }
   
-  def getDate(name:String, in:Any):Date = in match {
+  def getDate(name:String, in:Any, dateFormat: SimpleDateFormat):Date = in match {
     case s:Date => s
-    case s:String => defaultDateFormat.parse(s)
+    case s:String => dateFormat.parse(s)
     case e => throw new ParseException(s"Error converting item '$name' to Date. Value: $e",null)
   }
   

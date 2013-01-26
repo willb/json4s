@@ -89,6 +89,7 @@ class Stopwatch {
 case class ObjWithDefJunk(name:String, junk:Junk=Junk(-1,"Default"))
 
 class MacroDeserializerSpec extends Specification {
+  implicit val defaultFormats = DefaultFormats
   val refJunk = Junk(2,"cats")
   val refJunkDict = Map("d.in1"->refJunk.in1.toString,"d.in2"->refJunk.in2)
   
