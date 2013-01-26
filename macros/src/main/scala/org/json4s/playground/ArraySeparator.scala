@@ -1,25 +1,25 @@
 package playground
 
-object squareBraketArraySeparator extends ArraySeparator("[","]")
+object squareBracketArraySeparator extends ArraySeparator("[","]")
 
-abstract class ArraySeparator(val beginning:String, val end: String) {
-  // We require a beginning otherwise name collisions could occure
-  val hasEnd = end != null && end.trim.nonEmpty
+abstract class ArraySeparator(val arrayBeginning:String, val arrayEnd: String) {
+  // We require a beginning otherwise name collisions could occur
+  val hasEnd = arrayEnd != null && arrayEnd.trim.nonEmpty
   
-  def startsWithArray(key: String): Boolean = key.startsWith(beginning)
+  def startsWithArray(key: String): Boolean = key.startsWith(arrayBeginning)
   
   def wrapIndex(index: Int): String = {
-    if (hasEnd) beginning + index.toString + end
-    else beginning + index.toString
+    if (hasEnd) arrayBeginning + index.toString + arrayEnd
+    else arrayBeginning + index.toString
   }
   
   def appendIndex(key: String, index: Int): String = key + wrapIndex(index)
 
-  def hasArray(key: String): Boolean = key.indexOf(beginning) >= 0
+  def hasArray(key: String): Boolean = key.indexOf(arrayBeginning) >= 0
   
   def getIndex(key: String): Option[Int] = {
-    val indexStart = key.indexOf(beginning)+beginning.length
-    val indexEnd = if (hasEnd) key.indexOf(end) else key.length
+    val indexStart = key.indexOf(arrayBeginning)+arrayBeginning.length
+    val indexEnd = if (hasEnd) key.indexOf(arrayEnd) else key.length
     try {
       Some(key.substring(indexStart, indexEnd) toInt)
     } catch {
@@ -29,13 +29,13 @@ abstract class ArraySeparator(val beginning:String, val end: String) {
   
   // Gives the start and the remainder
   def stripFirstIndex(key: String): (String,String) = {
-    val indexStart = key.indexOf(beginning)
+    val indexStart = key.indexOf(arrayBeginning)
     if(indexStart < 0) return (key,"")
     
     val indexEnd = if (hasEnd) {
-      key.indexOf(end) + end.length 
+      key.indexOf(arrayEnd) + arrayEnd.length
     } else {
-      val i = key.substring(indexStart+beginning.length,key.length).indexOf(beginning) + beginning.length
+      val i = key.substring(indexStart+arrayBeginning.length,key.length).indexOf(arrayBeginning) + arrayBeginning.length
       if (i < 0) key.length else i+indexStart
     }
     

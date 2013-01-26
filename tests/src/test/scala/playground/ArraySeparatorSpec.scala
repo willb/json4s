@@ -5,7 +5,7 @@ import org.specs2.mutable.Specification
 class ArraySeparatorSpec extends Specification {
   
   "BraketArraySeparator" should {
-    val sep = squareBraketArraySeparator
+    val sep = squareBracketArraySeparator
     
     "Wrap index" in {
       sep.wrapIndex(4) must_== "[4]"
