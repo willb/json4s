@@ -21,11 +21,6 @@ trait ValueProvider[S]  {
   def read(index: Int): Either[Throwable, Option[Any]] = allCatch either { get(index) }
   def get(index: Int): Option[Any]
   def apply(index: Int): Any = get(index) get
-  def indexCount:Int = {
-    keySet.map { rawKey =>
-      separated.getIndex(rawKey)
-    }.toSet size
-  }
 }
 
 object ValueProvider {
@@ -57,8 +52,7 @@ class MapValueReader(protected val data: Map[String, Any], val prefix: String = 
   
   lazy val values: Map[String, Any] = stripPrefix(data)
 
-  // TODO: Consider how to deal with arrays, or not deal with them and punt to an array friendly method
-  def keySet: Set[String] = data.keys.collect{ 
+  def keySet: Set[String] = data.keys.collect{
     case (key) if key.startsWith(prefix) => separated.topLevelOnly(key,prefix)
   }.toSet
 

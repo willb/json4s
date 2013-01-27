@@ -69,7 +69,7 @@ object Deserializer {
       
       reify{
         c.Expr(freshParamsTree).splice
-        (0 until freshParams.splice.indexCount) map { i =>
+        (0 until freshParams.splice.keyCount) map { i =>
           c.Expr(buildObject(argTpe, wrappedIndexTree, freshParams)).splice
         } toList
       }.tree

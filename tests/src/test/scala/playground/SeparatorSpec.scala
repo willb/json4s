@@ -150,6 +150,10 @@ class SeparatorSpec extends Specification {
     "Can detect of a path ends with an index" in {
       sep.endsWithIndex("cats[dogs(0)]") must_== true
     }
+
+    "Can collect all indexes in a key" in {
+      sep.getIndexes("cats(0)[dogs(1)][pigs(2)(3)]") must_== 0::1::2::3::Nil
+    }
   }
   
 }
