@@ -6,10 +6,14 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
 
   val hasBeginning = beginning != null && beginning.trim.nonEmpty
   val hasEnd = end != null && end.trim.nonEmpty
-  private[this] val endLength = if (hasEnd) end.length else 0
+  protected val endLength = if (hasEnd) end.length else 0
 
+  // TODO: Make Array friendly such that wrapping things with arrays works as expected
+  // complications: part = (0)[foo] will be challenging
+  // Also need to make methods capable of (0)(0)[foo] style stuff
   def wrap(part: String, prefix: String = "") = {
     val hasPrefix = prefix != null && prefix.trim.nonEmpty
+
     if (hasPrefix) prefix + wrapped(part)
     else part
   }
@@ -24,7 +28,6 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
     sb.toString()
   }
 
-  // TODO: make this friendly to arrays
   /** Strips the separators from around the first key
     * eg, stripFirst("[foo][bar]") -> "foo[bar]"
     * don't want to strip indexes (0)[foo] -> (0)[foo]
@@ -46,21 +49,26 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
     } else key
   }
 
-  // TODO: Consider how to deal with arrays, or not deal with them and punt to an array friendly method
-  def topLevelOnly(key: String, prefix: String = "") = {
+  // Gives the top level only as either a raw key or a wrapped index
+  def topLevelOnly(key: String, prefix: String = ""): String = {
     val path = stripPrefix(key, prefix)
-    val startIndex = path.indexOf(beginning)
-    if (startIndex > -1)
-      path.substring(0, startIndex)
-    else {
-      val endIndex = path.indexOf(end)
-      if (hasEnd && endIndex > -1)
-        path.substring(0, endIndex)
-      else path
+    // Do we start with an index?
+    if (startsWithIndex(path)) {
+      wrapIndex(getIndex(path).get)
+    } else { //
+      val startIndex = path.indexOf(beginning)
+      if (startIndex > -1)
+        path.substring(0, startIndex)
+      else {
+        val endIndex = path.indexOf(end)
+        if (hasEnd && endIndex > -1)
+          path.substring(0, endIndex)
+        else path
+      }
     }
   }
 
-  /* Strips some prefix from the provided path.
+  /* Strips some key from the provided path.
    * {{{
    * val path = "baz[foo(0)][bar]
    * stripPrefix(path, "baz") == foo(0)[bar]
@@ -82,7 +90,7 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
       // normal case
       stripFirst(path.substring(prefix.length))
     }
-      // No prefix, just strip tags if needed
+      // No key, just strip tags if needed
     else stripFirst(path)
   }
 
@@ -111,9 +119,6 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
   }
 
   @inline
-  def appendIndex(key: String, index: Int): String =  key + wrapIndex(index)
-
-  @inline
   def hasIndex(key: String): Boolean = key.indexOf(arrayBeginning) >= 0
 
   def getIndex(key: String): Option[Int] = {
@@ -123,6 +128,13 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
       Some(key.substring(indexStart, indexEnd) toInt)
     } catch {
       case _: Throwable => None
+    }
+  }
+
+  def getIndexes(key: String): List[Int] = {
+    getIndex(key) match {
+      case Some(i) => i::getIndexes(splitAtFirstIndex(key)._2)
+      case None    => Nil
     }
   }
 
@@ -154,4 +166,9 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
     key.substring(0,findLastIndex(key,0)) + ( if (hasEnd) end else "" )
   }
 
+  def appendIndex(key: String, index: Int): String = {
+    if (hasEnd && key.indexOf(end) > 0) {
+      key.substring(0, key.length - endLength) + wrapIndex(index) + end
+    } else key + wrapIndex(index)
+  }
 }

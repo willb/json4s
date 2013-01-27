@@ -35,13 +35,13 @@ class MapValueReaderSpec extends Specification {
       rdr("thing.id") must_== 3
     }
 
-    "change root for prefix" in {
+    "change root for key" in {
       val rdr = new MapValueReader(data).forPrefix("thing")
       rdr("id") must_== 3
       rdr("name") must_== "a thing"
     }
 
-    "values return subset of map for prefix" in {
+    "values return subset of map for key" in {
       val rdr = new MapValueReader(data).forPrefix("thing")
       rdr.values must_== Map("id" -> 3, "name" -> "a thing")
     }
@@ -82,13 +82,13 @@ class MapValueReaderSpec extends Specification {
       rdr("thing[id]") must_== 3
     }
 
-    "change root for prefix" in {
+    "change root for key" in {
       val rdr = new MapValueReader(data, separated = by.SquareBrackets).forPrefix("thing")
       rdr("id") must_== 3
       rdr("name") must_== "a thing"
     }
 
-    "values return subset of map for prefix" in {
+    "values return subset of map for key" in {
       val rdr = new MapValueReader(data, separated = by.SquareBrackets).forPrefix("thing")
       rdr.values must_== Map("id" -> 3, "name" -> "a thing")
     }
