@@ -122,7 +122,7 @@ class SeparatorSpec extends Specification {
     val sep = new Separator("[", "]", "(", ")") {}
     val catIndexPath = "cats(0)[dogs][pigs]"
     "Strip first index" in {
-      sep.stripPrefix(catIndexPath,"cats") must_== "0[dogs][pigs]"
+      sep.stripPrefix(catIndexPath,"cats") must_== "(0)[dogs][pigs]"
       sep.stripPrefix(catIndexPath,"cats(0)") must_== "dogs[pigs]"
     }
 
@@ -130,12 +130,13 @@ class SeparatorSpec extends Specification {
 
     "Strip around indexes with endings" in {
       sep.stripPrefix(dogIndexPath,"cats[dogs(0)]") must_== "pigs"
-      sep.stripPrefix(dogIndexPath,"cats[dogs]") must_== "0[pigs]"
+      sep.stripPrefix(dogIndexPath,"cats") must_== "dogs(0)[pigs]"
+      sep.stripPrefix(dogIndexPath,"cats[dogs]") must_== "(0)[pigs]"
     }
 
     "Strip around indexes without endings" in {
       by.Dots.stripPrefix("cats.dogs[0].pigs", "cats.dogs[0]") must_== "pigs"
-      by.Dots.stripPrefix("cats.dogs[0].pigs", "cats.dogs") must_== "0.pigs"
+      by.Dots.stripPrefix("cats.dogs[0].pigs", "cats.dogs") must_== "[0].pigs"
     }
 
     "Can strip the last index" in {
@@ -143,7 +144,7 @@ class SeparatorSpec extends Specification {
     }
 
     "Cast strip first indexes" in {
-      sep.stripFirst("(0)[foo]") must_== "0[foo]"
+      sep.stripFirst("(0)[foo]") must_== "(0)[foo]"
     }
 
     "Can detect of a path ends with an index" in {

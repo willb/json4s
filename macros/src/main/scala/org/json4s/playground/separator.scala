@@ -6,6 +6,7 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
 
   val hasBeginning = beginning != null && beginning.trim.nonEmpty
   val hasEnd = end != null && end.trim.nonEmpty
+  private[this] val endLength = if (hasEnd) end.length else 0
 
   def wrap(part: String, prefix: String = "") = {
     val hasPrefix = prefix != null && prefix.trim.nonEmpty
@@ -26,7 +27,7 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
   // TODO: make this friendly to arrays
   /** Strips the separators from around the first key
     * eg, stripFirst("[foo][bar]") -> "foo[bar]"
-
+    * don't want to strip indexes (0)[foo] -> (0)[foo]
    */
   def stripFirst(key: String) = {
     val endIndex = if (hasEnd) key.indexOf(end) else -1
@@ -42,8 +43,6 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
       } else key.substring(beginning.size)
     } else if (hasBeginning && hasEnd && endIndex > -1 && endIndex < key.indexOf(beginning)) {
       key.substring(0, endIndex) + rest
-    } else if (startsWithIndex(key)) {
-       getIndex(key).get + splitAtFirstIndex(key)._2
     } else key
   }
 
@@ -61,22 +60,34 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
     }
   }
 
-  /* Will be really challenging to fix...
-     Need stripPrefix("cats[dogs(0)][pigs]", cats[dogs] -> "0[pigs]"
+  /* Strips some prefix from the provided path.
+   * {{{
+   * val path = "baz[foo(0)][bar]
+   * stripPrefix(path, "baz") == foo(0)[bar]
+   * stripPrefix(path, "baz[foo(0)] = bar
+   * stripPrefix(path, "baz[foo] = (0)[bar]
+   * }}}
    */
   def stripPrefix(path: String, prefix: String) = {
-    val realPrefix = if (endsWithIndex(prefix)) {
-
-    } else prefix
-
     val hasPrefix = prefix != null && prefix.trim.nonEmpty
-    if (hasPrefix && path.startsWith(prefix)) {
+    if (hasPrefix && (endsWithIndex(prefix) == false) &&
+        startsWithIndex(path.substring(prefix.length - endLength, path.length))) {
+      // case like stripPrefix("cats[dogs(0)][pigs]", cats[dogs])
+      val part = path.substring(path.indexOf(arrayBeginning),path.length)
+      if (arrayHasEnd) {
+        val endIndex = part.indexOf(end)
+        part.substring(0, endIndex) + part.substring(endIndex + endLength, part.length)
+      } else part
+    } else if (hasPrefix && path.startsWith(prefix)) {
+      // normal case
       stripFirst(path.substring(prefix.length))
     }
+      // No prefix, just strip tags if needed
     else stripFirst(path)
   }
 
   // ArraySeparator methods
+  @inline
   val arrayHasEnd = arrayEnd != null && arrayEnd.trim.nonEmpty
 
   @inline
@@ -102,7 +113,8 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
   @inline
   def appendIndex(key: String, index: Int): String =  key + wrapIndex(index)
 
-  def hasArray(key: String): Boolean = key.indexOf(arrayBeginning) >= 0
+  @inline
+  def hasIndex(key: String): Boolean = key.indexOf(arrayBeginning) >= 0
 
   def getIndex(key: String): Option[Int] = {
     val indexStart = key.indexOf(arrayBeginning)+arrayBeginning.length
@@ -139,7 +151,6 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
         findLastIndex(b,index)
       }
     }
-
     key.substring(0,findLastIndex(key,0)) + ( if (hasEnd) end else "" )
   }
 
