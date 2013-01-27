@@ -129,7 +129,7 @@ class MacroDeserializerSpec extends Specification {
     val stuff = new scala.collection.mutable.MutableList[ThingWithJunk]()
     val params = new scala.collection.mutable.HashMap[String,Any]
     import scala.util.Random
-    val numObjs = 20000
+    val numObjs = 6
     (0 until numObjs) foreach{ i =>
       val thng = ThingWithJunk("name_"+i,Junk(Random.nextInt,"junker"+Random.nextInt))
       stuff += thng

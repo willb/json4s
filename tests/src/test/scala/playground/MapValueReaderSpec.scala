@@ -62,6 +62,7 @@ class MapValueReaderSpec extends Specification {
 
   "A MapValueReader with a SquareBracketSeparator" should {
     val data = Map("name" -> "Raf", "thing[id]" -> 3, "thing[name]" -> "a thing", "thingandstrings" -> "member")
+
     "get a simple key" in {
       val rdr = new MapValueReader(data, separated = by.SquareBrackets)
       rdr.get("name") must beSome("Raf")
@@ -106,7 +107,6 @@ class MapValueReaderSpec extends Specification {
       rdr.isComplex("thingandstrings") must beFalse
       rdr.isComplex("name") must beFalse
     }
-
 
 
   }
