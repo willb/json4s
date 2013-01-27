@@ -7,10 +7,10 @@ import org.json4s.ParserUtil.ParseException
 import util.control.Exception._
 
 object JsonValueProvider {
-  
+  def apply(data: JValue) = new JsonValueProvider(data)
 }
   
-class JsonValueProvider(override protected val data:JValue, val prefix:String = "") extends ValueProvider[JValue] {
+class JsonValueProvider(override protected val data:JValue, val prefix:String = "", val separated: Separator = by.Dots) extends ValueProvider[JValue] {
 
   def get(index: Int): Option[Any] = data match {
     case JArray(arr) => Some(arr(index))
@@ -22,8 +22,6 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
     case arr:JArray  => (0 until arr.arr.length) map { _.toString } toSet
     case _ => Set()
   }
-  
-  val separated: Separator = by.Dots
 
   def contains(key: String): Boolean = get(key) match {
     case Some(_) => true
@@ -37,7 +35,7 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
     get(key,data) getOrElse {throw new java.util.NoSuchElementException(s"key $key not found!")},
     separated.wrap(key, prefix)
   )
-  
+
   def isComplex(key: String): Boolean = get(key, data) map { _ match {
     case _:JObject => true
     case _ => false
