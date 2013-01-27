@@ -26,6 +26,11 @@ class SeparatorSpec extends Specification {
     "Strip first index" in {
       sep.splitAtFirstIndex("cats[5][2]") must_== ("cats","[2]")
     }
+
+    "Strip around indexes without endings" in {
+      by.Dots.stripPrefix("cats.dogs[0].pigs", "cats.dogs[0]") must_== "pigs"
+      by.Dots.stripPrefix("cats.dogs[0].pigs", "cats.dogs") must_== "[0].pigs"
+    }
     
     "Strip first index of missing index" in {
       sep.splitAtFirstIndex("cats") must_== ("cats","")
@@ -80,8 +85,12 @@ class SeparatorSpec extends Specification {
     "Miss Index" in {
       sep.getIndex("cats") must_== None
     }
-    
-    "Strip first index" in {
+
+    "Split at first index for single index" in {
+      sep.splitAtFirstIndex("cats[3.dogs") must_== ("cats", ".dogs")
+    }
+
+    "Strip first index from multiple indexes" in {
       sep.splitAtFirstIndex("cats[5[2") must_== ("cats","[2")
     }
     
@@ -134,13 +143,13 @@ class SeparatorSpec extends Specification {
       sep.stripPrefix(dogIndexPath,"cats[dogs]") must_== "(0)[pigs]"
     }
 
-    "Strip around indexes without endings" in {
-      by.Dots.stripPrefix("cats.dogs[0].pigs", "cats.dogs[0]") must_== "pigs"
-      by.Dots.stripPrefix("cats.dogs[0].pigs", "cats.dogs") must_== "[0].pigs"
-    }
-
     "Can strip the last index" in {
       sep.stripTailingIndex("cats[dogs(0)]") must_== "cats[dogs]"
+    }
+
+    "Split at first index correctly" in {
+      sep.splitAtFirstIndex("cats[dogs(0)][pigs]") must_== ("cats[dogs","][pigs]")
+      sep.splitAtFirstIndex("[cats(1000)]") must_== ("[cats","]")
     }
 
     "Cast strip first indexes" in {
