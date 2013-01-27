@@ -6,7 +6,8 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
 
   val hasBeginning = beginning != null && beginning.trim.nonEmpty
   val hasEnd = end != null && end.trim.nonEmpty
-  protected val endLength = if (hasEnd) end.length else 0
+
+  private[this] val endLength = if (hasEnd) end.length else 0
 
   // TODO: Make Array friendly such that wrapping things with arrays works as expected
   // complications: part = (0)[foo] will be challenging
@@ -95,7 +96,6 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
   }
 
   // ArraySeparator methods
-  @inline
   val arrayHasEnd = arrayEnd != null && arrayEnd.trim.nonEmpty
 
   @inline
@@ -145,9 +145,21 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
 
     val indexEnd = if (arrayHasEnd) {
       key.indexOf(arrayEnd) + arrayEnd.length
-    } else {
-      val i = key.substring(indexStart+arrayBeginning.length,key.length).indexOf(arrayBeginning) + arrayBeginning.length
-      if (i < 0) key.length else i+indexStart
+    } else {  // Must find next separator token, or else we are at the end.
+      val i = key.substring(indexStart+arrayBeginning.length,key.length)
+      val indexOfNextArr = i.indexOf(arrayBeginning)
+      val indexOfNextKey = i.indexOf(beginning)
+
+      indexStart + arrayBeginning.length + (
+        if (indexOfNextArr > 0 && indexOfNextKey < 0) {
+          indexOfNextArr
+        } else if (indexOfNextArr < 0 && indexOfNextKey >= 0) {
+          indexOfNextKey
+        } else if (indexOfNextArr > 0 && indexOfNextKey >= 0) {
+          if (indexOfNextArr > indexOfNextKey) indexOfNextKey else indexOfNextArr
+        }  else 0 // didn't find either token next, must be at end of key
+      )
+
     }
 
     (key.substring(0,indexStart), key.substring(indexEnd,key.length))
