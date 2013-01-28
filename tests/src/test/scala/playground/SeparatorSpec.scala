@@ -19,7 +19,12 @@ class SeparatorSpec extends Specification {
       sep.wrap("foo","") must_== "foo"
       sep.wrap("foo","bar") must_== "bar.foo"
       sep.wrap("[0].foo","bar") must_== "bar[0].foo"
-      sep.wrap("[0].foo","bar") must_== "bar[0].foo"
+    }
+
+    "Wrap complex keys" in {
+      sep.wrap("cats.dogs", "foo.bar") must_== "foo.bar.cats.dogs"
+      sep.wrap("[0].cats" , "foo.bar") must_== "foo.bar[0].cats"
+      sep.wrap("[0][1].cats[2]" , "foo.bar") must_== "foo.bar[0][1].cats[2]"
     }
     
     "Append index" in {
@@ -100,7 +105,12 @@ class SeparatorSpec extends Specification {
       sep.wrap("foo","") must_== "foo"
       sep.wrap("foo","bar") must_== "bar.foo"
       sep.wrap("[[0]].foo","bar") must_== "bar[[0]].foo"
-      sep.wrap("[[0]].foo","bar") must_== "bar[[0]].foo"
+    }
+
+    "Wrap complex keys" in {
+      sep.wrap("cats.dogs", "foo.bar") must_== "foo.bar.cats.dogs"
+      sep.wrap("[[0]].cats" , "foo.bar") must_== "foo.bar[[0]].cats"
+      sep.wrap("[[0]][[1]].cats[[2]]" , "foo.bar") must_== "foo.bar[[0]][[1]].cats[[2]]"
     }
 
     "Append index" in {
@@ -178,6 +188,15 @@ class SeparatorSpec extends Specification {
       sep.wrap("[2.cats", "pigs.dogs") must_== "pigs.dogs[2.cats"
       sep.wrap("[2[3.cats", "pigs.dogs") must_== "pigs.dogs[2[3.cats"
       sep.wrap("cats[2", "pigs.dogs") must_== "pigs.dogs.cats[2"
+      sep.wrap("foo","") must_== "foo"
+      sep.wrap("foo","bar") must_== "bar.foo"
+      sep.wrap("[0.foo","bar") must_== "bar[0.foo"
+    }
+
+    "Wrap complex keys" in {
+      sep.wrap("cats.dogs", "foo.bar") must_== "foo.bar.cats.dogs"
+      sep.wrap("[0.cats" , "foo.bar") must_== "foo.bar[0.cats"
+      sep.wrap("[0[1.cats[2" , "foo.bar") must_== "foo.bar[0[1.cats[2"
     }
     
     "Append index" in {
@@ -257,6 +276,15 @@ class SeparatorSpec extends Specification {
       sep.wrap("(2)[cats]", "pigs[dogs]") must_== "pigs[dogs(2)][cats]"
       sep.wrap("(2)(3)[cats]", "pigs[dogs]") must_== "pigs[dogs(2)(3)][cats]"
       sep.wrap("cats(2)", "pigs[dogs]") must_== "pigs[dogs][cats(2)]"
+      sep.wrap("foo","") must_== "foo"
+      sep.wrap("foo","bar") must_== "bar[foo]"
+      sep.wrap("(0)[foo]","bar") must_== "bar(0)[foo]"
+    }
+
+    "Wrap complex keys" in {
+      sep.wrap("cats[dogs]", "foo[bar]") must_== "foo[bar][cats][dogs]"
+      sep.wrap("(0)[cats]" , "foo[bar]") must_== "foo[bar(0)][cats]"
+      sep.wrap("(0)(1)[cats(2)]" , "foo[bar]") must_== "foo[bar(0)(1)][cats(2)]"
     }
 
     "Append index" in {

@@ -32,7 +32,7 @@ object MapValueReader {
   
   def apply(data: Map[String, Any], separated: Separator = by.Dots) = new MapValueReader(data, separated = separated)
 }
-// TODO: make work with array style
+
 class MapValueReader(protected val data: Map[String, Any], val prefix: String = "", val separated: Separator = by.Dots) extends ValueProvider[Map[String, Any]] {
   
   def get(index: Int) = get(separated.wrapIndex(index))
