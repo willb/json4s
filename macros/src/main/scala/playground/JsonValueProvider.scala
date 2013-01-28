@@ -12,14 +12,23 @@ object JsonValueProvider {
   
 class JsonValueProvider(override protected val data:JValue, val prefix:String = "", val separated: Separator = by.Dots) extends ValueProvider[JValue] {
 
+  private[this] def extractPrimative(in: JValue): Any = in match {
+    case jv: JBool => jv.value
+    case jv: JDecimal => jv.num
+    case jv: JDouble => jv.num
+    case jv: JInt => jv.num
+    case jv: JString => jv.s
+    case jv => jv
+  }
+
   def get(index: Int): Option[Any] = data match {
-    case JArray(arr) => Some(arr(index))
+    case JArray(arr) => Some(extractPrimative(arr(index)))
     case _ => None
   }
 
   lazy val keySet: Set[String] = data match {
-    case obj:JObject => obj.obj.map { case (k,jv) => k } toSet
-    case arr:JArray  => (0 until arr.arr.length) map { _.toString } toSet
+    case obj:JObject => obj.obj.map{ case (k,jv) => k }.toSet
+    case arr:JArray  => (0 until arr.arr.length).map{ _.toString }.toSet
     case _ => Set()
   }
 
@@ -29,7 +38,9 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
   }
   
   // This should spit out the raw type, not the JValue?
-  def get(key: String): Option[Any] = get(key, data)
+  def get(key: String): Option[Any] = getJson(key) map extractPrimative
+
+  def getJson(key: String): Option[JValue] = get(key,data)
   
   def forPrefix(key: String): JsonValueProvider = new JsonValueProvider(
     get(key,data) getOrElse {throw new java.util.NoSuchElementException(s"key $key not found!")},
@@ -55,26 +66,22 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
       case JObject(l) => (l.find ( _._1 == key)) map (_._2) getOrElse JNothing
       case _ => JNothing
     }
-    val (part,rest) = separated.splitAtFirstIndex(path)
     if(separated.startsWithIndex(path)) {  // Started with array indexing
+      val rest = separated.stripFrontIndex(path)
       val index = separated.getIndex(path).get
-      if (rest.isEmpty ) {
-        Some(jv(index))
-      } else {
-        // need to strip '.' if there is one
-        get(
-          if (rest.startsWith(separated.beginning)) rest.substring(separated.beginning.length,rest.length) 
-          else rest,
-          jv(index)
-        )
+      try {
+        if (rest.isEmpty ) {
+          Some(jv(index))
+        } else  get(rest, jv(index))
+      } catch {
+        case e: IndexOutOfBoundsException => Some(JNothing)
       }
     } else {  // Didn't start with a array indexing selection
-      separated.getIndex(path) match {
-        case Some(i) if rest.isEmpty => Some(objPart(jv,part)(i))
-        case Some(i) => get (rest, objPart(jv,part)(i))
-        case None if rest.isEmpty => Some(objPart(jv, part))
-        case None => get (rest, objPart(jv,part))
-      }
+      val part = separated.topLevelOnly(path)
+      val rest = separated.stripPrefix(path,part)
+      if (rest.nonEmpty) {
+        get(rest, objPart(jv,part))
+      } else Some(objPart(jv,part))
     }
   }
   
