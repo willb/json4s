@@ -56,9 +56,10 @@ object Serializer {
     def result = current.result
   }
 
-  def serialize[U](obj:U, name:String, writer: Writer)(implicit defaultFormats: Formats) = macro impl[U]
-  def impl[U:c.WeakTypeTag](c: Context)(obj: c.Expr[U], name: c.Expr[String], writer: c.Expr[Writer])
-                           (defaultFormats: c.Expr[Formats]):c.Expr[Unit] = {
+  /* ----------------- Implementations ----------------- */
+  def serialize[U](obj: U, name: String, writer: Writer)(implicit defaultFormats: Formats) = macro impl[U]
+  def impl[U: c.WeakTypeTag](c: Context)(obj: c.Expr[U], name: c.Expr[String], writer: c.Expr[Writer])
+                           (defaultFormats: c.Expr[Formats]): c.Expr[Unit] = {
                       
     import c.universe._
     val helpers = new macrohelpers.MacroHelpers[c.type](c)
@@ -80,7 +81,7 @@ object Serializer {
     
     
     // Assumes that you are already in an object or list
-    def dumpObject(tpe:Type,path:Tree,name:c.Expr[String],isList:Boolean=false):c.Tree = {
+    def dumpObject(tpe: Type, path: Tree, name: c.Expr[String], isList: Boolean=false): c.Tree = {
       
       val startFieldExpr = if(isList) {
         reify{}
@@ -133,7 +134,10 @@ object Serializer {
         // checking in reify or what...
           PrimativeHelpers.optIdent(c.Expr[Option[Any]](path).splice) match {
             case Some(x) => c.Expr[Unit](dumpObject(pTpe,Ident("x"),name)).splice
-            case None    => Unit
+            case None    => {
+              startFieldExpr.splice
+              writerStack.splice.addJValue(org.json4s.JNothing)
+            }
           }
         }.tree
       } 
@@ -170,7 +174,7 @@ object Serializer {
       }.tree::Nil,
       c.literalUnit.tree
     )
-    //println(s"------------------ Debug: Generated Code ------------------\n $code")
+    // println(s"------------------ Debug: Generated Code ------------------\n $code")
     c.Expr[Unit](code)
   }
   

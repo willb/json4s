@@ -66,7 +66,7 @@ class JsonValueProviderSpec extends Specification {
       println(provider2.values.getClass)
       provider2("[0].cat") must_== 1
     }
-    // Should be consistant between bad indexes and bad keys
+
     "Return JNothing on bad index" in {
       val provider = new JsonValueProvider(json2.asInstanceOf[JObject])
       provider("content[4][0].cat") must_== JNothing

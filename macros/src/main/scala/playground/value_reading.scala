@@ -39,7 +39,6 @@ class MapValueReader(protected val data: Map[String, Any], val prefix: String = 
   
   def get(key: String):Option[Any] = data.get(separated.wrap(key, prefix))
 
-   // TODO: This needs to be modified to accommodate prefixing indexes
   def forPrefix(key: String): ValueProvider[Map[String, Any]] = new MapValueReader(data,separated.wrap(key, prefix),separated)
 
   
