@@ -7,7 +7,10 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
   val hasBeginning = beginning != null && beginning.trim.nonEmpty
   val hasEnd = end != null && end.trim.nonEmpty
 
+  val arrayHasEnd = arrayEnd != null && arrayEnd.trim.nonEmpty
+
   private[this] val endLength = if (hasEnd) end.length else 0
+  private[this] val arrayEndLength = if (arrayHasEnd) arrayEnd.length else 0
 
   /*  Wrap keys into an existing prefix. Does not to level changing for map type keys.
    *  Can handle single keys and multiple indexes at the same time.
@@ -68,17 +71,21 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
     val path = stripPrefix(key, prefix)
     // Do we start with an index?
     if (startsWithIndex(path)) {
-      wrapIndex(getIndex(path).get)
-    } else { //
-      val startIndex = path.indexOf(beginning)
-      if (startIndex > -1)
-        path.substring(0, startIndex)
-      else {
-        val endIndex = path.indexOf(end)
-        if (hasEnd && endIndex > -1)
-          path.substring(0, endIndex)
-        else path
+      //wrapIndex(getIndex(path).get)
+      path.substring(0,getEndIndexPosition(path) + arrayEndLength)
+    } else {
+      @ inline def indexManip(in: Int) = {
+        if (in < 0) Int.MaxValue
+        else in
       }
+
+      val startKeyToken = indexManip(path.indexOf(beginning))
+      val startArrayToken = indexManip(path.indexOf(arrayBeginning))
+      val result = math.min(startKeyToken, startArrayToken)
+
+      if (result != Int.MaxValue) {
+        path.substring(0,result)
+      } else path
     }
   }
 
@@ -109,11 +116,9 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
   }
 
   // ArraySeparator methods
-  val arrayHasEnd = arrayEnd != null && arrayEnd.trim.nonEmpty
 
-  @inline
   def startsWithIndex(key: String): Boolean = key.startsWith(arrayBeginning)
-  @inline
+
   def hasIndex(key: String): Boolean = key.indexOf(arrayBeginning) >= 0
 
   def endsWithIndex(key: String): Boolean = {
@@ -154,7 +159,20 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
   def splitAtFirstIndex(key: String): (String,String) = {
     val indexStart = key.indexOf(arrayBeginning)
     if(indexStart < 0) return (key,"")
-    (key.substring(0,indexStart), key.substring(getEndIndexPosition(key) + arrayEnd.length,key.length))
+    (key.substring(0,indexStart), key.substring(getEndIndexPosition(key) + arrayEndLength,key.length))
+  }
+
+  def stripFrontIndex(key: String): String = {
+    if (key.startsWith(arrayBeginning)) {
+      val stub = key.substring(
+        getEndIndexPosition(key) + arrayEndLength,
+        key.length
+      )
+      stripFirst(
+        if (hasEnd && stub.startsWith(end)) stub.substring(end.length, stub.length)
+        else stub
+      )
+    } else key
   }
 
   def stripTailingIndex(key: String): String = {
