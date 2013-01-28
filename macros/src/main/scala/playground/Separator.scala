@@ -4,7 +4,8 @@ import annotation.tailrec
 
 abstract class Separator(val beginning: String, end: String, val arrayBeginning:String, val arrayEnd: String) {
 
-  val hasBeginning = beginning != null && beginning.trim.nonEmpty
+  // Must have beginning
+  //val hasBeginning = beginning != null && beginning.trim.nonEmpty
   val hasEnd = end != null && end.trim.nonEmpty
 
   val arrayHasEnd = arrayEnd != null && arrayEnd.trim.nonEmpty
@@ -31,13 +32,23 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
     }
     // Strip off any beginning remaining
     if (hasEnd && rest.startsWith(end)) rest = rest.substring(endLength,rest.length)
-    if (rest.nonEmpty) result + wrapped(rest)
-    else result
+    if (rest.nonEmpty) {
+      result + {
+        if (rest.startsWith(beginning)) rest // Must already be wrapped or malformed
+        else {
+          val beginningIndex = rest.indexOf(beginning)
+          if (beginningIndex >=0) {
+            val (front,back) = rest.splitAt(beginningIndex)
+            wrapped(front) + back
+          } else wrapped(rest)
+        }
+      }
+    } else result
   }
 
   def wrapped(part: String) = {
     val sb = new StringBuilder
-    if (hasBeginning && !part.startsWith(beginning))
+    if (!part.startsWith(beginning))
       sb.append(beginning)
     sb.append(part)
     if (hasEnd && !part.endsWith(end))
@@ -57,11 +68,11 @@ abstract class Separator(val beginning: String, end: String, val arrayBeginning:
       if (hasMore) key.substring(realEnd) else ""
     }
 
-    if (hasBeginning && key.startsWith(beginning)) {
+    if (key.startsWith(beginning)) {
       if (hasEnd && endIndex > -1) {
          key.substring(beginning.size, endIndex) + rest
       } else key.substring(beginning.size)
-    } else if (hasBeginning && hasEnd && endIndex > -1 && endIndex < key.indexOf(beginning)) {
+    } else if (hasEnd && endIndex > -1 && endIndex < key.indexOf(beginning)) {
       key.substring(0, endIndex) + rest
     } else key
   }
