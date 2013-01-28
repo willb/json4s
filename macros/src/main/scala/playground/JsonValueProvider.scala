@@ -1,9 +1,7 @@
 package org.json4s
 
 import playground._
-//import playground.ValueProvider
 import org.json4s.ParserUtil.ParseException
-
 import util.control.Exception._
 
 object JsonValueProvider {
@@ -12,7 +10,7 @@ object JsonValueProvider {
   
 class JsonValueProvider(override protected val data:JValue, val prefix:String = "", val separated: Separator = by.Dots) extends ValueProvider[JValue] {
 
-  private[this] def extractPrimative(in: JValue): Any = in match {
+  private[this] def extractPrimitive(in: JValue): Any = in match {
     case jv: JBool => jv.value
     case jv: JDecimal => jv.num
     case jv: JDouble => jv.num
@@ -22,7 +20,7 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
   }
 
   def get(index: Int): Option[Any] = data match {
-    case JArray(arr) => Some(extractPrimative(arr(index)))
+    case JArray(arr) => Some(extractPrimitive(arr(index)))
     case _ => None
   }
 
@@ -38,7 +36,7 @@ class JsonValueProvider(override protected val data:JValue, val prefix:String = 
   }
   
   // This should spit out the raw type, not the JValue?
-  def get(key: String): Option[Any] = getJson(key) map extractPrimative
+  def get(key: String): Option[Any] = getJson(key) map extractPrimitive
 
   def getJson(key: String): Option[JValue] = get(key,data)
   
