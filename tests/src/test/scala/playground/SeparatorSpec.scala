@@ -70,6 +70,19 @@ class SeparatorSpec extends Specification {
     "Can collect all indexes in a key" in {
       sep.getIndexes("cats[0].dogs[1].pigs[2][3]") must_== 0::1::2::3::Nil
     }
+
+    "Can strip index from key" in {
+      sep.stripFrontIndex("[22].foo.bar") must_== "foo.bar"
+      sep.stripFrontIndex("[22][23].foo.bar") must_== "[23].foo.bar"
+      sep.stripFrontIndex("foo.bar") must_== "foo.bar"
+    }
+
+    "topLevelOnly works" in {
+      sep.topLevelOnly("foo.bar") must_== "foo"
+      sep.topLevelOnly("foo[1].bar") must_== "foo"
+      sep.topLevelOnly("[1].foo.bar") must_== "[1]"
+      sep.topLevelOnly("[1][2].foo.bar") must_== "[1]"
+    }
   }
   
   "DoubleBracketArraySeparator" should {
@@ -138,7 +151,19 @@ class SeparatorSpec extends Specification {
     "Can collect all indexes in a key" in {
       sep.getIndexes("cats[[0]].dogs[[1]].pigs[[2]][[3]]") must_== 0::1::2::3::Nil
     }
-    
+
+    "Can strip index from key" in {
+      sep.stripFrontIndex("[[22]].foo.bar") must_== "foo.bar"
+      sep.stripFrontIndex("[[22]][[23]].foo.bar") must_== "[[23]].foo.bar"
+      sep.stripFrontIndex("foo.bar") must_== "foo.bar"
+    }
+
+    "topLevelOnly works" in {
+      sep.topLevelOnly("foo.bar") must_== "foo"
+      sep.topLevelOnly("foo[[1]].bar") must_== "foo"
+      sep.topLevelOnly("[[1]].foo.bar") must_== "[[1]]"
+      sep.topLevelOnly("[[1]][[2]].foo.bar") must_== "[[1]]"
+    }
   }
   
   "LeftBracketArraySeparator" should {
@@ -204,6 +229,19 @@ class SeparatorSpec extends Specification {
 
     "Can collect all indexes in a key" in {
       sep.getIndexes("cats[0.dogs[1.pigs[2[3") must_== 0::1::2::3::Nil
+    }
+
+    "Can strip index from key" in {
+      sep.stripFrontIndex("[22.foo.bar") must_== "foo.bar"
+      sep.stripFrontIndex("[22[23.foo.bar") must_== "[23.foo.bar"
+      sep.stripFrontIndex("foo.bar") must_== "foo.bar"
+    }
+
+    "topLevelOnly works" in {
+      sep.topLevelOnly("foo.bar") must_== "foo"
+      sep.topLevelOnly("foo[1.bar") must_== "foo"
+      sep.topLevelOnly("[1.foo.bar") must_== "[1"
+      sep.topLevelOnly("[1[2.foo.bar") must_== "[1"
     }
   }
 
@@ -271,6 +309,19 @@ class SeparatorSpec extends Specification {
 
     "Can collect all indexes in a key" in {
       sep.getIndexes("cats(0)[dogs(1)][pigs(2)(3)]") must_== 0::1::2::3::Nil
+    }
+
+    "Can strip index from key" in {
+      sep.stripFrontIndex("(22)[foo][bar]") must_== "foo[bar]"
+      sep.stripFrontIndex("(22)(23)[foo][bar]") must_== "(23)[foo][bar]"
+      sep.stripFrontIndex("foo[bar]") must_== "foo[bar]"
+    }
+
+    "topLevelOnly works" in {
+      sep.topLevelOnly("foo[bar]") must_== "foo"
+      sep.topLevelOnly("foo(1)[bar]") must_== "foo"
+      sep.topLevelOnly("(1)[foo][bar]") must_== "(1)"
+      sep.topLevelOnly("(1)(2)[foo][bar]") must_== "(1)"
     }
   }
   
