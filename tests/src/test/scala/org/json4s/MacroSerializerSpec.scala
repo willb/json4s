@@ -156,5 +156,13 @@ class MacroSerializerSpec extends Specification {
         )
       ))
     }
+
+    // --------------- Serialize Object -------------------
+    "serObject should build primative case classes" in {
+      val sim = Simple(1,"two")
+      val json = serObject(sim)
+
+      json must_== JObject(("one", JInt(1))::("two", JString("two"))::Nil)
+    }
   }
 }

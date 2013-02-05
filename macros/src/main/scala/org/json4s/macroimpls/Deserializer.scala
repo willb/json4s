@@ -25,6 +25,7 @@ object Deserializer {
   }
   */
 
+
   // The meat and potatoes of the implementation.
   def deserialize[U](params: ParamsTpe,name:String)(implicit defaultFormats: Formats) = macro deserialize_impl[U]
   def deserialize_impl[U: c.WeakTypeTag](c: Context)(params: c.Expr[ParamsTpe],name:c.Expr[String])
@@ -159,7 +160,7 @@ object Deserializer {
       else if (tpe =:= typeOf[Double]) { rparseDouble(name,params).tree }
       else if (tpe =:= typeOf[String]) { rparseString(name,params).tree }
       else if (tpe =:= typeOf[Date])   { rparseDate(name,params).tree   }
-      // The privlaged types
+      // The privileged types
       else if (tpe.erasure =:= typeOf[Option[Any]]) {
         rparseOption(tpe,name,params)
       }
