@@ -2,7 +2,9 @@ package org.json4s.macroimpls
 
 import language.experimental.macros
 import scala.reflect.macros.Context
-
+import playground.Separator
+import util.control.Exception._
+import scala.Some
 
 
 object Deserializer {
@@ -25,6 +27,32 @@ object Deserializer {
   }
   */
 
+  def marshalObject[U](params: ParamsTpe)(implicit defaultFormats: Formats) = macro marshalObject_impl[U]
+  def marshalObject_impl[U: c.WeakTypeTag](c: Context)(params: c.Expr[ParamsTpe])(defaultFormats: c.Expr[Formats]):c.Expr[U] = {
+    import c.universe._
+
+    // TODO: check to make sure that the object we are trying to marshal is really a complex object
+
+    reify {
+      // Just offer a shell that will wrap the real params
+      val wrapperParmas = new playground.ValueProvider[Any] {
+        def prefix: String = ""
+        protected def data = ???
+        def separated: Separator = ???
+        def get(key: String): Option[Any] = None
+        def values = ???
+        def keySet: Set[String] = Set("")
+        def --(keys: Iterable[String]): ParamsTpe = ???
+        def isComplex(key: String): Boolean = false
+        def contains(key: String): Boolean = false
+
+        def isArray(key: String): Boolean =false
+        def get(index: Int): Option[Any] = None
+        def forPrefix(key: String): ParamsTpe = params.splice // Only one that matters
+      }
+    }
+    ???
+  }
 
   // The meat and potatoes of the implementation.
   def deserialize[U](params: ParamsTpe,name:String)(implicit defaultFormats: Formats) = macro deserialize_impl[U]
