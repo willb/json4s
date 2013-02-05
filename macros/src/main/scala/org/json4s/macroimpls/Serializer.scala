@@ -63,6 +63,7 @@ object Serializer {
 
     reify {
       val writer = JsonWriter.ast
+
       {impl(c)(obj,c.Expr[String]{Literal(Constant("tmpname"))},c.Expr[Writer](Ident("writer")))(defaultFormats)}.splice
       val jobj: JObject = writer.result.asInstanceOf[JObject]
       val JObject(("tmpname",result)::Nil) = jobj // Now just extract the object from the wrapper
