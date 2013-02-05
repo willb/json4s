@@ -3,7 +3,7 @@ package org.json4s.macroimpls
 import language.experimental.macros
 import scala.reflect.macros.Context
 
-import org.json4s.{Formats, JsonWriter, JValue}
+import org.json4s.{Formats, JsonWriter, JValue, JObject}
 import macrohelpers._
 
 
@@ -56,7 +56,21 @@ object Serializer {
     def result = current.result
   }
 
-  /* ----------------- Implementations ----------------- */
+  /* ----------------- Offers directly to object serialization -------------------------- */
+  def serializeToObject[U](obj: U)(implicit defaultFormats: Formats) = macro implSerToObj[U]
+  def implSerToObj[U: c.WeakTypeTag](c: Context)(obj: c.Expr[U])(defaultFormats: c.Expr[Formats]): c.Expr[JObject] = {
+    import c.universe._
+
+    reify {
+      val writer = JsonWriter.ast
+      {impl(c)(obj,c.Expr[String]{Literal(Constant("tmpname"))},c.Expr[Writer](Ident("writer")))(defaultFormats)}.splice
+      val jobj: JObject = writer.result.asInstanceOf[JObject]
+      val JObject(("tmpname",result)::Nil) = jobj // Now just extract the object from the wrapper
+      result.asInstanceOf[JObject]
+    }
+  }
+
+  /* ----------------- Macro Serializer ----------------- */
   def serialize[U](obj: U, name: String, writer: Writer)(implicit defaultFormats: Formats) = macro impl[U]
   def impl[U: c.WeakTypeTag](c: Context)(obj: c.Expr[U], name: c.Expr[String], writer: c.Expr[Writer])
                            (defaultFormats: c.Expr[Formats]): c.Expr[Unit] = {
