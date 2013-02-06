@@ -2,7 +2,7 @@ package playground
 
 import util.control.Exception._
 
-trait ValueProvider[S]  {
+trait ValueProvider[+S]  {
   def prefix: String
   protected def data: S
   def separated: Separator

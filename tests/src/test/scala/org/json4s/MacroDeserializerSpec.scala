@@ -116,7 +116,7 @@ class MacroDeserializerSpec extends Specification {
     deserialize[Map[String,Junk]](data,"dd") must_== expected
   }
   
-  "Build a map with polymorphic types" in {
+  "Build a map of objects with type parameters" in {
     //case class WithTpeParams[U](in1:U)
     val data = Map("dd.a.in1"->"2","dd.b.in1"->"3","dd.d.in1"->"4")
     val expected = Map("a"->WithTpeParams(2),"b"->WithTpeParams(3),"d"->WithTpeParams(4))
@@ -364,6 +364,13 @@ class MacroDeserializerSpec extends Specification {
     val params = Map("d.in1"->"2ffds","d.in2"->"cats")
 	  deserialize[Junk](params,"d") must throwA[ParseException](message="Error parsing value 'in1' to Int")
 	}
+
+    "Generate a Junk object directly" in {
+      val params = Map("in1"-> "1", "in2"-> "two")
+      marshalObject[Junk](params) must_== Junk(1,"two")
+
+      //case class Junk(in1:Int, in2:String)
+    }
 	
   }
 }
