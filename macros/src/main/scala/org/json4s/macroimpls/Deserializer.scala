@@ -33,25 +33,26 @@ object Deserializer {
 
     // TODO: check to make sure that the object we are trying to marshal is really a complex object
 
-    reify {
+    val wrapper: c.Expr[ParamsTpe] = reify {
       // Just offer a shell that will wrap the real params
-      val wrapperParmas = new playground.ValueProvider[Any] {
+      new playground.ValueProvider[Any] {
         def prefix: String = ""
-        protected def data = ???
-        def separated: Separator = ???
+        protected def data = sys.error("Shouldn't have been called for this stub class!")
+        def separated: Separator = sys.error("Shouldn't have been called for this stub class!")
         def get(key: String): Option[Any] = None
-        def values = ???
+        def values = sys.error("Shouldn't have been called for this stub class!")
         def keySet: Set[String] = Set("")
-        def --(keys: Iterable[String]): ParamsTpe = ???
+        def --(keys: Iterable[String]): playground.ValueProvider[Any] = sys.error("Shouldn't have been called for this stub class!")
         def isComplex(key: String): Boolean = false
         def contains(key: String): Boolean = false
 
         def isArray(key: String): Boolean =false
         def get(index: Int): Option[Any] = None
-        def forPrefix(key: String): ParamsTpe = params.splice // Only one that matters
+        def forPrefix(key: String): playground.ValueProvider[Any] = params.splice // Only one that matters
       }
     }
-    ???
+
+    deserialize_impl[U](c)(wrapper,c.Expr[String]{Literal(Constant("nothing"))})(defaultFormats)
   }
 
   // The meat and potatoes of the implementation.
