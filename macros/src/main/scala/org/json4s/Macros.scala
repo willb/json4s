@@ -10,5 +10,6 @@ object Macros {
   def serObject[U](obj: U)(implicit defaultFormats: Formats) = macro macroimpls.Serializer.implSerToObj[U]
   
   def deserialize[U](params: ParamsTpe,name:String)(implicit defaultFormats: Formats) = macro macroimpls.Deserializer.deserialize_impl[U]
+  def marshalObject[U](params: ParamsTpe)(implicit defaultFormats: Formats) = macro macroimpls.Deserializer.marshalObject_impl[U]
 
 }
