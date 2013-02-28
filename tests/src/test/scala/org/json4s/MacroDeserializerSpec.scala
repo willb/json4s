@@ -286,12 +286,14 @@ class MacroDeserializerSpec extends Specification {
     val params = wrapD(("in" -> expected.in))
 	  deserialize[WithOption](params, "d") must_== expected
 	}
-  /*
+
 	"Generate a recursive Option" in {
 	  val expected = OptionOption(Some(Some(5)))
-	  val stuff = Map("d.in"->"5")
+	  val params = wrapD(
+      ("in" -> 5)
+    )
 
-	  val result = deserialize[OptionOption](stuff,"d")
+	  val result = deserialize[OptionOption](params, "d")
 
 	  result must_== expected
 	}
@@ -299,36 +301,44 @@ class MacroDeserializerSpec extends Specification {
   "Handle type parameters" in {
 	  //case class WithTpeParams[U](in1:U)
 	  val expected = WithTpeParams(100)
-	  val params = Map("d.in1"->"100")
+    val params = wrapD(("in1" -> expected.in1))
 	  deserialize[WithTpeParams[Int]](params,"d") must_== expected
 	}
-	
+
 	"Handle a tuple" in {
 	  val expected = (2,3,"cats")
-	  val params = Map("d._1"->"2","d._2"->"3","d._3"->"cats")
+    val params = wrapD(
+      ("_1" -> expected._1) ~ ("_2" -> expected._2) ~ ("_3" -> expected._3)
+    )
 	  
-	  deserialize[Tuple3[Int,Int,String]](params,"d") must_== expected
+	  deserialize[(Int, Int, String)](params,"d") must_== expected
 	}
-	
+
 	"Handle nested type parameters, WithNstedTpeParams[U,U2](U, WithTpeParams[U2])" in {
 	  val expected = new WithNstedTpeParams("cat",WithTpeParams(100))
-	  val params = Map("d.in1"->"cat","d.in2.in1"->"100")
-	  deserialize[WithNstedTpeParams[String,Int]](params,"d") must_== expected
+    val params = wrapD(
+      ("in1" -> expected.in1) ~ ("in2" -> ("in1" -> expected.in2.in1))
+    )
+	  deserialize[WithNstedTpeParams[String, Int]](params, "d") must_== expected
 	}
-	
+
 	"Handle partially resolved, ResolvedParams[U](in3: U, in4:WithTpeParams[Int])" in {
 	  val expected = new ResolvedParams("cat",WithTpeParams(100))
-	  val params = Map("d.in3"->"cat","d.in4.in1"->"100")
-	  deserialize[ResolvedParams[String]](params,"d") must_== expected
+    val params = wrapD(
+      ("in3" -> expected.in3) ~ ("in4" -> ("in1" -> expected.in4.in1))
+    )
+	  deserialize[ResolvedParams[String]](params, "d") must_== expected
 	}
-	
+
 	"Curried case class" in {
 	  val expected = Curried(1,2)(3)
-	  val params = Map("d.in1"->"1","d.in2"->"2","d.in3"->"3")
-	  deserialize[Curried](params,"d") must_== expected
+	  //val params = Map("d.in1"->"1","d.in2"->"2","d.in3"->"3")
+    val params = wrapD(
+      ("in1" -> expected.in1) ~ ("in2" -> expected.in2) ~ ("in3" -> 3)
+    )
+	  deserialize[Curried](params, "d") must_== expected
 	}
-	
-		// This fails to compile: complains about type parameters for List
+	/*
 	"parse List[Int]" in {
       val expected = 1::2::3::4::Nil
       val params = Map("d[0]"->"1","d[1]"->"2","d[2]"->"3","d[3]"->"4")
