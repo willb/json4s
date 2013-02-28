@@ -13,19 +13,18 @@ class MacroHelpers[C <: Context](val c1:C) {
   // For building objects that take type parameters
   def typeArgumentTree(t: c1.Type): c1.Tree = t match {
     case TypeRef(_, _, typeArgs @ _ :: _) => AppliedTypeTree(
-          Ident(t.typeSymbol), typeArgs map (t=>typeArgumentTree(t)) )
+          Ident(t.typeSymbol), typeArgs map (t => typeArgumentTree(t)) )
     case _                                => Ident(t.typeSymbol.name)
   }
     
-  def getVars(tpe:Type):List[Symbol] = tpe.members.filter(_.asTerm.isVar).toList
-  def getVals(tpe:Type):List[Symbol] = tpe.members.filter(_.asTerm.isVal).toList
+  def getVars(tpe: Type): List[Symbol] = tpe.members.filter(_.asTerm.isVar).toList
+  def getVals(tpe: Type): List[Symbol] = tpe.members.filter(_.asTerm.isVal).toList
   
-  def getNonConstructorVars(tpe:Type):List[Symbol] = {
+  def getNonConstructorVars(tpe: Type): List[Symbol] = {
     // Make sure that the param isn't part of the constructor
     val ctorParams = tpe.member(nme.CONSTRUCTOR).asMethod.paramss.flatten.map(_.name.toTermName.toString.trim)
     for{
-      sym <- getVars(tpe)
-      if !ctorParams.exists(sym.name.toTermName.toString.trim == _)
+      sym <- getVars(tpe) if !ctorParams.exists(sym.name.toTermName.toString.trim == _)
     } yield sym
   }
   
