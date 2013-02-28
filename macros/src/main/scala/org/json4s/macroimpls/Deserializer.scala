@@ -45,11 +45,11 @@ object Deserializer {
                   )
       (freshNme, freshParams, freshParamsTree)
     }
-    /*
-    def rparseList(tpe:Type, name:c.Expr[String], params: c.Expr[JValue]):Tree = {
+
+    def rparseList(tpe:Type, params: c.Expr[JValue]): Tree = {
       val TypeRef(_, _, List(argTpe)) = tpe
       
-      val (freshNme, freshParams, freshParamsTree) = genFreshParams(name, params)
+      /*val (freshNme, freshParams, freshParamsTree) = genFreshParams(name, params)
       
       val listNme = newTermName("lst")
       val listTree = ValDef(
@@ -58,19 +58,19 @@ object Deserializer {
                       typeArgumentTree(tpe),
                       reify{Nil}.tree
       )
-      
-      val wrappedIndexTree: c.Expr[String] = reify {
-        freshParams.splice.separated.wrapIndex( c.Expr[Int](Ident("i")).splice )
-      }
+      */
+      val wrappedIndex: c.Expr[JValue] = c.Expr[JValue](Ident("i"))
       
       reify{
-        c.Expr(freshParamsTree).splice
-        (0 until freshParams.splice.keyCount) map { i =>
-          c.Expr(buildObject(argTpe, wrappedIndexTree, freshParams)).splice
-        } toList
+        params.splice match {
+          case JArray(arr) => arr.map { i =>
+            c.Expr(buildObject(argTpe, wrappedIndex)).splice
+          }
+          case _ => Nil
+      }
       }.tree
     } // rparseList
-
+    /*
     def rparseMap(tpe:Type, name:c.Expr[String], params: c.Expr[JValue])   = {
       val TypeRef(_, _, keyTpe::valTpe::Nil) = tpe
       val (freshNme, freshParams, freshParamsTree) = genFreshParams(name, params)
@@ -133,18 +133,18 @@ object Deserializer {
     def rparseString(params: c.Expr[JValue]) = reify{
       getString(params.splice)
     }
-    /*
-    def rparseOption(tpe:Type, name:c.Expr[String], params: c.Expr[JValue]):Tree = {
+
+    def rparseOption(tpe:Type, params: c.Expr[JValue]):Tree = {
       val TypeRef(_, _, List(argTpe)) = tpe
       reify{
         try{
-          Some(c.Expr(buildObject(argTpe, name, params)).splice)
+          Some(c.Expr(buildObject(argTpe, params)).splice)
         } catch {
           case _: NothingException => None
         }
       }.tree
     }
-     */
+
     // The really heavyweight function. Most of the magic happens in the last else statement
     def buildObject(tpe: Type, params: c.Expr[JValue]):Tree = {
       // simple types
@@ -153,18 +153,18 @@ object Deserializer {
       else if (tpe =:= typeOf[Float])  { rparseFloat(params).tree  }
       else if (tpe =:= typeOf[Double]) { rparseDouble(params).tree }
       else if (tpe =:= typeOf[String]) { rparseString(params).tree }
-      else if (tpe =:= typeOf[Date])   { rparseDate(params).tree   }  /*
+      else if (tpe =:= typeOf[Date])   { rparseDate(params).tree   }
 
       // The privileged types
-      else if (tpe.erasure =:= typeOf[Option[Any]]) {
-        rparseOption(tpe, name, params)
-      }
+      else if (tpe.erasure <:< typeOf[Option[Any]]) {
+        rparseOption(tpe, params)
+      }       /*
       else if (tpe.erasure =:= typeOf[Map[_, _]]) {
         rparseMap(tpe, name, params)
-      }
-      else if (tpe.erasure =:= typeOf[List[Any]]) {
-        rparseList(tpe, name, params)
       } */
+      else if (tpe.erasure =:= typeOf[List[Any]]) {
+        rparseList(tpe, params)
+      }
       else { // Must be a complex object
       
         val TypeRef(_, sym:Symbol, tpeArgs:List[Type]) = tpe
