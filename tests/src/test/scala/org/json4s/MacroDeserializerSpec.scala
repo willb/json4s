@@ -89,11 +89,10 @@ class Stopwatch {
 case class ObjWithDefJunk(name:String, junk:Junk=Junk(-1,"Default"))
 
 class MacroDeserializerSpec extends Specification {
-  def wrapD(obj: JObject) = JObject(("d" -> obj)::Nil)
   implicit val defaultFormats = DefaultFormats
   val refJunk = Junk(2,"cats")
   //val refJunkDict = Map("d.in1"->refJunk.in1.toString,"d.in2"->refJunk.in2)
-  val refJunkDict: JObject = wrapD(serObject(refJunk))
+  val refJunkDict: JValue = serObject(refJunk)
 
   "Macros.deserialize" should {
     import JsonDSL._
@@ -153,22 +152,22 @@ class MacroDeserializerSpec extends Specification {
   */
 	"Primative Int" in {
 	  val expected:Int = 5
-	  val params = Map("d"-> 5)
-	  deserialize[Int](params, "d") must_== expected
+	  val params = JInt(5)
+	  deserialize[Int](params) must_== expected
 	}
 
   "Primative Long" in {
 	  val expected:Long = 5
-	  val params = Map("d"-> 5)
-	  deserialize[Long](params,"d") must_== expected
+	  val params = JInt(5)
+	  deserialize[Long](params) must_== expected
 	}
-  
+
 	"Generate a Junk" in {
-	  deserialize[Junk](refJunkDict, "d") must_== refJunk
+	  deserialize[Junk](refJunkDict) must_== refJunk
 	}
 
 	"Generate a MutableJunk" in {
-	  deserialize[MutableJunk](refJunkDict,"d") must_== MutableJunk(2,"cats")
+	  deserialize[MutableJunk](refJunkDict) must_== MutableJunk(2,"cats")
 	}
 
   "Generate a MutableJunkWithField when field provided" in {
@@ -177,102 +176,81 @@ class MacroDeserializerSpec extends Specification {
     //}
     val expected = MutableJunkWithField(2)
     expected.in2 = "cats"
-    deserialize[MutableJunkWithField](refJunkDict, "d") must_== expected
+    deserialize[MutableJunkWithField](refJunkDict) must_== expected
     
   }
 
   "Generate a MutableJunkWithField when field missing" in {
-    //case class MutableJunkWithField(var in1:Int) {
-    //  var in2:String = ""
-    //}
     val expected = MutableJunkWithField(2)
-    val params = wrapD(JObject(("in1", JInt(2))::Nil))
-    deserialize[MutableJunkWithField](params, "d") must_== expected
+    val params = JObject(("in1" -> JInt(2))::Nil)
+    deserialize[MutableJunkWithField](params) must_== expected
     
   }
 
 	"Generate a ThingWithJunk" in {
 	  val expected = ThingWithJunk("Bob", Junk(2, "SomeJunk..."))
-	  //val stuff = Map("dog.junk.name" -> expected.name, "dog.name" ->expected.name, "dog.junk.in1"->expected.junk.in1.toString,
-		//			  "dog.junk.in2"->expected.junk.in2)
-
-    val stuff = wrapD(
-      ("name" -> "Bob") ~ ("junk" -> ("in1" -> 2) ~ ("in2" -> expected.junk.in2))
-    )
+    val stuff =("name" -> "Bob") ~ ("junk" -> ("in1" -> 2) ~ ("in2" -> expected.junk.in2))
 					  
-	  val result = deserialize[ThingWithJunk](stuff,"d")
+	  val result = deserialize[ThingWithJunk](stuff)
 	
 	  result must_== expected
 	}
 
 	"Generate a 3 fold deap case class" in {
 	  val expected = Crazy("crazyBob...",ThingWithJunk("Bob",Junk(2,"SomeJunk...")))
-	  val oldstuff = Map("d.name"->expected.name,"d.thg.name"->expected.thg.name,"d.thg.junk.in1"->expected.thg.junk.in1.toString,
-					  "d.thg.junk.in2"->expected.thg.junk.in2)
 
-    val stuff = wrapD(
-      ("name" -> expected.name) ~ ( "thg" ->
-          ( "name" -> expected.thg.name) ~ ( "junk" ->
-            ("in1" -> 2) ~ ("in2" -> expected.thg.junk.in2)
-            )
-          )
-
+    val stuff = ("name" -> expected.name) ~ ( "thg" ->
+      ( "name" -> expected.thg.name) ~ ( "junk" ->
+        ("in1" -> 2) ~ ("in2" -> expected.thg.junk.in2)
+        )
     )
 					  
-	  val result = deserialize[Crazy](stuff,"d")
+	  val result = deserialize[Crazy](stuff)
 	  result must_== expected
 	}
 
 	"Parse date info" in {
 	  val expected = WithDate("Bob", new Date)
-    val params = wrapD(
-      ("name" -> expected.name) ~ ("date" -> defaultFormats.dateFormat.format(expected.date))
-    )
+    val params = ("name" -> expected.name) ~ ("date" -> defaultFormats.dateFormat.format(expected.date))
 	  
-	  deserialize[WithDate](params,"d") must_== expected
+	  deserialize[WithDate](params) must_== expected
 	}
 
 	"Created ClassWithDef with param" in {
-    val params = wrapD(
-      ("in" -> 1)
-    )
-	  deserialize[ClassWithDef](params, "d") must_== (new ClassWithDef(1))
+    val params = ("in" -> 1)
+	  deserialize[ClassWithDef](params) must_== (new ClassWithDef(1))
 	}
 
 	"Created ClassWithDef without param" in {
     val params = JObject(Nil)
-	  deserialize[ClassWithDef](params,"d") must_== (new ClassWithDef)
+	  deserialize[ClassWithDef](params) must_== (new ClassWithDef)
 	}
 
 	"Generate a JunkWithDefault with a value" in {
 	  var expected = JunkWithDefault(refJunk.in1,refJunk.in2)
-	  deserialize[JunkWithDefault](refJunkDict,"d") must_== expected
+	  deserialize[JunkWithDefault](refJunkDict) must_== expected
 	}
 
 	"Generate a JunkWithDefault without a value" in {
 	  var expected = JunkWithDefault(refJunk.in1)
-    val params = wrapD(
-      ("in1" -> 2)
-    )
-	  deserialize[JunkWithDefault](params,"d") must_== expected
+    val params: JObject = ("in1" -> 2)    // TODO: causes problems if not explicitly wrapped as JObject
+	  deserialize[JunkWithDefault](params) must_== expected
 	}
 
 	"Created ObjWithDefJunk without junk" in {
 	  val expected = ObjWithDefJunk("Name")
-    val params = wrapD(("name" -> "Name"))
-	  deserialize[ObjWithDefJunk](params,"d") must_== expected
+    val params: JObject = ("name" -> "Name")
+	  deserialize[ObjWithDefJunk](params) must_== expected
 	}
 
 	"Created ObjWithDefJunk with provided junk" in {
 	  val expected = ObjWithDefJunk("Name",Junk(2,"Provided"))
-    val params = wrapD(
-      ("name" -> "Name") ~ ("junk" ->
+    val params = ("name" -> "Name") ~ ("junk" ->
         ("in1" -> 2) ~ ("in2" -> "Provided")
       )
-    )
-	  deserialize[ObjWithDefJunk](params,"d") must_== expected
+	  deserialize[ObjWithDefJunk](params) must_== expected
 	}
-
+  /*
 	"Instance a case class with an Option" in {
 	  val expected = WithOption(2,Some("Pizza pockets forever!"))
     val params = wrapD(
@@ -338,16 +316,17 @@ class MacroDeserializerSpec extends Specification {
     )
 	  deserialize[Curried](params, "d") must_== expected
 	}
-	/*
+
 	"parse List[Int]" in {
       val expected = 1::2::3::4::Nil
-      val params = Map("d[0]"->"1","d[1]"->"2","d[2]"->"3","d[3]"->"4")
+      //val params = Map("d[0]"->"1","d[1]"->"2","d[2]"->"3","d[3]"->"4")
+    val params = ("d" -> expected)
 	  
 	  val result = deserialize[List[Int]](params,"d")
 	   
 	  result must_== expected
   }
-	
+
 	"parse List[WithTpeParams[String]]" in {
       val expected = WithTpeParams("one")::WithTpeParams("two")::Nil
       val params = Map("d[0].in1"->"one","d[1].in1"->"two")
