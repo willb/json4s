@@ -64,9 +64,9 @@ object Serializer {
     reify {
       val writer = JsonWriter.ast
 
-      {impl(c)(obj,c.Expr[String]{Literal(Constant("tmpname"))},c.Expr[Writer](Ident("writer")))(defaultFormats)}.splice
+      {impl(c)(obj, c.Expr[String]{Literal(Constant("tmpname"))}, c.Expr[Writer](Ident("writer")))(defaultFormats)}.splice
       val jobj: JObject = writer.result.asInstanceOf[JObject]
-      val JObject(("tmpname",result)::Nil) = jobj // Now just extract the object from the wrapper
+      val JObject(("tmpname", result)::Nil) = jobj // Now just extract the object from the wrapper
       result.asInstanceOf[JObject]
     }
   }
@@ -82,7 +82,7 @@ object Serializer {
     
     // Will help manage the JsonWriters for us instead of having to
     // keep track as we go down the tree
-    val Block(writerStackDef::Nil,_) = reify{
+    val Block(writerStackDef::Nil, _) = reify{
       val writerStack = new WriterStack(writer.splice)
     }.tree
     val writerStack = c.Expr[WriterStack](Ident("writerStack"))
@@ -110,19 +110,19 @@ object Serializer {
       } 
       // Handle the lists
       else if(tpe <:< typeOf[scala.collection.Seq[Any]]) {
-        val TypeRef(_,sym:Symbol,pTpe::Nil) = tpe
+        val TypeRef(_, sym:Symbol, pTpe::Nil) = tpe
         reify{
           startFieldExpr.splice
           writerStack.splice.startArray()
           c.Expr[scala.collection.Seq[Any]](path).splice.foreach { i =>
-            c.Expr(dumpObject(pTpe,Ident("i"),LIT(""),isList=true)).splice
+            c.Expr(dumpObject(pTpe, Ident("i"), LIT(""), isList=true)).splice
           }
           writerStack.splice.endArray()
         }.tree
       } 
       
-      else if(tpe <:< typeOf[scala.collection.GenMap[Any,Any]].erasure) {
-        val TypeRef(_,_,keyTpe::valTpe::Nil) = tpe
+      else if(tpe <:< typeOf[scala.collection.GenMap[Any, Any]].erasure) {
+        val TypeRef(_, _, keyTpe::valTpe::Nil) = tpe
         
         if(!primitiveTypes.exists(_ =:= keyTpe)) {
           c.abort(c.enclosingPosition,
@@ -132,9 +132,9 @@ object Serializer {
         reify{
           startFieldExpr.splice
           writerStack.splice.startObject()
-          c.Expr[scala.collection.GenMap[Any,Any]](path).splice.foreach { case (k,v) =>
+          c.Expr[scala.collection.GenMap[Any, Any]](path).splice.foreach { case (k, v) =>
             val kstr = k.toString
-            c.Expr(dumpObject(valTpe,Ident("v"),kExpr)).splice
+            c.Expr(dumpObject(valTpe, Ident("v"), kExpr)).splice
           }
           writerStack.splice.endObject()
           
@@ -142,13 +142,13 @@ object Serializer {
         
       // Handle Options
       } else if(tpe <:< typeOf[Option[Any]]) {
-        val TypeRef(_,sym:Symbol,pTpe::Nil) = tpe
+        val TypeRef(_, sym:Symbol, pTpe::Nil) = tpe
         reify{
         // I would be happier if I could to c.Expr[Option["real type"]]
         // but this seems to work. I'm not sure if its just for type
         // checking in reify or what...
           PrimativeHelpers.optIdent(c.Expr[Option[Any]](path).splice) match {
-            case Some(x) => c.Expr[Unit](dumpObject(pTpe,Ident("x"),name)).splice
+            case Some(x) => c.Expr[Unit](dumpObject(pTpe, Ident("x"), name)).splice
             case None    => {
               startFieldExpr.splice
               writerStack.splice.addJValue(org.json4s.JNothing)
@@ -158,14 +158,14 @@ object Serializer {
       } 
       
       else {  // Complex object
-        val TypeRef(_,sym:Symbol,tpeArgs:List[Type]) = tpe
+        val TypeRef(_, sym:Symbol, tpeArgs:List[Type]) = tpe
         // get fields
         val fields = getVars(tpe):::getVals(tpe)
         val fieldTrees = fields map { pSym => 
-          val pTpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams,tpeArgs)
+          val pTpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
           val fieldName = pSym.name.decoded.trim    // Do I need to trim here?
-          val fieldPath = Select(path,newTermName(fieldName))
-          dumpObject(pTpe,fieldPath,LIT(fieldName))
+          val fieldPath = Select(path, newTermName(fieldName))
+          dumpObject(pTpe, fieldPath, LIT(fieldName))
         }
         
         // Return add all the blocks for each field and pop this obj off the stack
@@ -173,20 +173,20 @@ object Serializer {
         reify{
           startFieldExpr.splice
           writerStack.splice.startObject()
-        }.tree::fieldTrees
-        ,reify{writerStack.splice.endObject()}.tree)
+        }.tree::fieldTrees,
+        reify{writerStack.splice.endObject()}.tree)
       }
     } // dumpObject
     
     val code = Block(
       writerStackDef::
-      reify{
+      reify(
         writerStack.splice.startObject()
-      }.tree::
-      dumpObject(weakTypeOf[U],obj.tree,name)::
-      reify{
+      ).tree::
+      dumpObject(weakTypeOf[U], obj.tree, name)::
+      reify(
         writerStack.splice.endObject()
-      }.tree::Nil,
+      ).tree::Nil,
       c.literalUnit.tree
     )
     // println(s"------------------ Debug: Generated Code ------------------\n $code")
