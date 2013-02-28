@@ -52,12 +52,12 @@ object Deserializer {
       }
     }
 
-    deserialize_impl[U](c)(wrapper,c.Expr[String]{Literal(Constant("nothing"))})(defaultFormats)
+    deserialize_impl[U](c)(wrapper, c.Expr[String]{Literal(Constant("nothing"))})(defaultFormats)
   }
 
   // The meat and potatoes of the implementation.
-  def deserialize[U](params: ParamsTpe,name:String)(implicit defaultFormats: Formats) = macro deserialize_impl[U]
-  def deserialize_impl[U: c.WeakTypeTag](c: Context)(params: c.Expr[ParamsTpe],name:c.Expr[String])
+  def deserialize[U](params: ParamsTpe, name:String)(implicit defaultFormats: Formats) = macro deserialize_impl[U]
+  def deserialize_impl[U: c.WeakTypeTag](c: Context)(params: c.Expr[ParamsTpe], name:c.Expr[String])
           (defaultFormats: c.Expr[Formats]):c.Expr[U] = {
 
     import c.universe._
@@ -67,7 +67,7 @@ object Deserializer {
     import helpers._
     
     // For generating new new params set down the tree one step
-    def genFreshParams(name: c.Expr[String], params: c.Expr[ParamsTpe]):(TermName,c.Expr[ParamsTpe],Tree) = {
+    def genFreshParams(name: c.Expr[String], params: c.Expr[ParamsTpe]):(TermName, c.Expr[ParamsTpe], Tree) = {
       val freshNme = newTermName(c.fresh("freshParams$"))
       val freshParams = c.Expr[ParamsTpe](Ident(freshNme))
       
@@ -77,13 +77,13 @@ object Deserializer {
                     TypeTree(typeOf[ParamsTpe]), 
                     reify{params.splice.forPrefix(name.splice)}.tree
                   )
-      (freshNme,freshParams,freshParamsTree)
+      (freshNme, freshParams, freshParamsTree)
     }
     
-    def rparseList(tpe:Type,name:c.Expr[String], params: c.Expr[ParamsTpe]):Tree = {
-      val TypeRef(_,_,List(argTpe)) = tpe
+    def rparseList(tpe:Type, name:c.Expr[String], params: c.Expr[ParamsTpe]):Tree = {
+      val TypeRef(_, _, List(argTpe)) = tpe
       
-      val (freshNme,freshParams,freshParamsTree) = genFreshParams(name,params)
+      val (freshNme, freshParams, freshParamsTree) = genFreshParams(name, params)
       
       val listNme = newTermName("lst")
       val listTree = ValDef(
@@ -105,17 +105,17 @@ object Deserializer {
       }.tree
     } // rparseList
      
-    def rparseMap(tpe:Type,name:c.Expr[String], params: c.Expr[ParamsTpe])   = {
-      val TypeRef(_,_,keyTpe::valTpe::Nil) = tpe 
-      val (freshNme,freshParams,freshParamsTree) = genFreshParams(name,params)
+    def rparseMap(tpe:Type, name:c.Expr[String], params: c.Expr[ParamsTpe])   = {
+      val TypeRef(_, _, keyTpe::valTpe::Nil) = tpe
+      val (freshNme, freshParams, freshParamsTree) = genFreshParams(name, params)
       
       // Capable of parsing maps that contain primatives as keys, not only strings
       val kExpr = c.Expr[String](Ident("k"))
       val keyParser = keyTpe match {
-        case a if a =:= typeOf[Int] => reify{getInt(kExpr.splice,kExpr.splice)}
-        case a if a =:= typeOf[Long] => reify{getLong(kExpr.splice,kExpr.splice)}
-        case a if a =:= typeOf[Float] => reify{getFloat(kExpr.splice,kExpr.splice)}
-        case a if a =:= typeOf[Double] => reify{getDouble(kExpr.splice,kExpr.splice)}
+        case a if a =:= typeOf[Int] => reify{getInt(kExpr.splice, kExpr.splice)}
+        case a if a =:= typeOf[Long] => reify{getLong(kExpr.splice, kExpr.splice)}
+        case a if a =:= typeOf[Float] => reify{getFloat(kExpr.splice, kExpr.splice)}
+        case a if a =:= typeOf[Double] => reify{getDouble(kExpr.splice, kExpr.splice)}
         case a if a =:= typeOf[String] => reify{kExpr.splice}
         case _ => c.abort(c.enclosingPosition, "Map must contain primative types as keys!")
       }
@@ -127,8 +127,8 @@ object Deserializer {
           )
         )
 
-      val addValTree = Apply(Select(Ident("b"),newTermName("update")),
-                            List(keyParser.tree,buildObject(valTpe,kExpr,freshParams))
+      val addValTree = Apply(Select(Ident("b"), newTermName("update")),
+                            List(keyParser.tree, buildObject(valTpe, kExpr, freshParams))
                             )
    
       reify {
@@ -140,40 +140,40 @@ object Deserializer {
         freshParams.splice.keySet.foreach { k => // Must use k or rename above
           c.Expr(addValTree).splice
         }
-        c.Expr(Select(Ident("b"),newTermName("toMap"))).splice
+        c.Expr(Select(Ident("b"), newTermName("toMap"))).splice
       }.tree
     }
     
     def rparseDate(name:c.Expr[String], params: c.Expr[ParamsTpe])  = reify {
-      //(dtf.splice).parse(getArg(name,params.splice))
-      getDate(name.splice,params.splice(name.splice),defaultFormats.splice.dateFormat)
+      //(dtf.splice).parse(getArg(name, params.splice))
+      getDate(name.splice, params.splice(name.splice), defaultFormats.splice.dateFormat)
     }
     
     def rparseInt(name:c.Expr[String], params: c.Expr[ParamsTpe])    = reify {
-      getInt(name.splice,params.splice(name.splice))
+      getInt(name.splice, params.splice(name.splice))
     }
     
     def rparseLong(name:c.Expr[String], params: c.Expr[ParamsTpe])   = reify {
-      getLong(name.splice,params.splice(name.splice))
+      getLong(name.splice, params.splice(name.splice))
     }
     
     def rparseFloat(name:c.Expr[String], params: c.Expr[ParamsTpe])  = reify {
-      getFloat(name.splice,params.splice(name.splice))
+      getFloat(name.splice, params.splice(name.splice))
     }
     
     def rparseDouble(name:c.Expr[String], params: c.Expr[ParamsTpe]) = reify {
-      getDouble(name.splice,params.splice(name.splice))
+      getDouble(name.splice, params.splice(name.splice))
     }
     
     def rparseString(name:c.Expr[String], params: c.Expr[ParamsTpe]) = reify{
-      getString(name.splice,params.splice(name.splice))
+      getString(name.splice, params.splice(name.splice))
     }
     
-    def rparseOption(tpe:Type,name:c.Expr[String], params: c.Expr[ParamsTpe]):Tree = {
-      val TypeRef(_,_,List(argTpe)) = tpe
+    def rparseOption(tpe:Type, name:c.Expr[String], params: c.Expr[ParamsTpe]):Tree = {
+      val TypeRef(_, _, List(argTpe)) = tpe
       reify{
         try{
-          Some(c.Expr(buildObject(argTpe,name,params)).splice)
+          Some(c.Expr(buildObject(argTpe, name, params)).splice)
         } catch {
           case _: java.util.NoSuchElementException => None
         }
@@ -181,57 +181,57 @@ object Deserializer {
     }
     
     // The really heavyweight function. Most of the magic happens in the last else statement
-    def buildObject(tpe: Type, name:c.Expr[String],params: c.Expr[ParamsTpe]):Tree = {
+    def buildObject(tpe: Type, name:c.Expr[String], params: c.Expr[ParamsTpe]):Tree = {
       // simple types
-      if      (tpe =:= typeOf[Int])    { rparseInt(name,params).tree    }
-      else if (tpe =:= typeOf[Long])   { rparseLong(name,params).tree   }
-      else if (tpe =:= typeOf[Float])  { rparseFloat(name,params).tree  }
-      else if (tpe =:= typeOf[Double]) { rparseDouble(name,params).tree }
-      else if (tpe =:= typeOf[String]) { rparseString(name,params).tree }
-      else if (tpe =:= typeOf[Date])   { rparseDate(name,params).tree   }
+      if      (tpe =:= typeOf[Int])    { rparseInt(name, params).tree    }
+      else if (tpe =:= typeOf[Long])   { rparseLong(name, params).tree   }
+      else if (tpe =:= typeOf[Float])  { rparseFloat(name, params).tree  }
+      else if (tpe =:= typeOf[Double]) { rparseDouble(name, params).tree }
+      else if (tpe =:= typeOf[String]) { rparseString(name, params).tree }
+      else if (tpe =:= typeOf[Date])   { rparseDate(name, params).tree   }
       // The privileged types
       else if (tpe.erasure =:= typeOf[Option[Any]]) {
-        rparseOption(tpe,name,params)
+        rparseOption(tpe, name, params)
       }
-      else if (tpe.erasure =:= typeOf[Map[_,_]]) {
-        rparseMap(tpe,name,params)
+      else if (tpe.erasure =:= typeOf[Map[_, _]]) {
+        rparseMap(tpe, name, params)
       }
       else if (tpe.erasure =:= typeOf[List[Any]]) {
-        rparseList(tpe,name,params)
+        rparseList(tpe, name, params)
         
       } else { // Must be a complex object. Hopefully it can be instanced normally
       
-        val TypeRef(_,sym:Symbol,tpeArgs:List[Type]) = tpe
+        val TypeRef(_, sym:Symbol, tpeArgs:List[Type]) = tpe
         val ctorParams = tpe.member(nme.CONSTRUCTOR).asMethod.paramss
-        val (_,freshParams,freshParamsTree) = genFreshParams(name,params)
+        val (_, freshParams, freshParamsTree) = genFreshParams(name, params)
         
         val newObjTerm = newTermName(c.fresh("newObj$"))
         val newObjTypeTree = typeArgumentTree(tpe)
-        val newObjTree = ValDef(Modifiers(),newObjTerm,newObjTypeTree,
-          // New(typeTree,List(List(params))
-          New(newObjTypeTree,ctorParams.map{_.zipWithIndex.map { 
-            case (pSym,index) =>
+        val newObjTree = ValDef(Modifiers(), newObjTerm, newObjTypeTree,
+          // New(typeTree, List(List(params))
+          New(newObjTypeTree, ctorParams.map{_.zipWithIndex.map {
+            case (pSym, index) =>
             // Change out the types if it has type parameters
-            val pTpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams,tpeArgs)
+            val pTpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
             val compName = LIT(pSym.name.decoded)
             // If param has defaults, try to find the val in map, or call 
             // default evaluation from its companion object
             if (pSym.asTerm.isParamWithDefault) {
               reify {
                 try {
-                  c.Expr(buildObject(pTpe, compName,freshParams)).splice // splice in another obj tree
+                  c.Expr(buildObject(pTpe, compName, freshParams)).splice // splice in another obj tree
                 } catch {
                   case e: java.util.NoSuchElementException =>
                     // Need to use the origional symbol.companionObj to get defaults
                     // Would be better to find the generated TermNames if possible
-                    c.Expr(Select(Ident(sym.companionSymbol),newTermName(
+                    c.Expr(Select(Ident(sym.companionSymbol), newTermName(
                       "$lessinit$greater$default$" + (index+1).toString))
                     ).splice
                 }
               }.tree
-            } else buildObject(pTpe, compName,freshParams) // Required
+            } else buildObject(pTpe, compName, freshParams) // Required
             
-          }}) // Using the New(Tree,List(List(Tree))) constructor
+          }}) // Using the New(Tree, List(List(Tree))) constructor
         ) // newObjTree ValDef
         
         // Generate the code for setting fields not in the constructor
@@ -240,7 +240,7 @@ object Deserializer {
           val varName = vari.name.toTermName.toString.trim
           reify{
             try {
-            c.Expr(Assign(Select(Ident(newObjTerm),newTermName(varName)),
+            c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)),
               buildObject(vari.typeSignature,
                 LIT(varName),
                 freshParams
@@ -252,12 +252,12 @@ object Deserializer {
           }.tree
         }
         
-        Block(freshParamsTree::newObjTree::setParamsBlocks,Ident(newObjTerm))
+        Block(freshParamsTree::newObjTree::setParamsBlocks, Ident(newObjTerm))
       }
     }
     
     val tpe = weakTypeOf[U]
-    val expr = c.Expr[U](buildObject(tpe,name,params))
+    val expr = c.Expr[U](buildObject(tpe, name, params))
     // println(expr)  // Debug
     expr
   }
