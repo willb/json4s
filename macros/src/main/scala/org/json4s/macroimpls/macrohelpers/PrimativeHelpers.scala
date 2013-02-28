@@ -6,7 +6,7 @@ import scala.reflect.macros.Context
 import org.json4s.ParserUtil.ParseException
 import org.json4s._
 
-class NothingException(name: String) extends ParseException(s"JValue $name is a JNothing", null)
+class NothingException extends ParseException("JValue is a JNothing", null)
 
 object PrimativeHelpers {
   import org.json4s.DateFormat
@@ -20,42 +20,36 @@ object PrimativeHelpers {
 
 
   // Some helpers to make things a little more simple in the generated code
-  def getInt(name: String, in: JValue): Int = in match {
+  def getInt(in: JValue): Int = in match {
     case JInt(int) => int.intValue()
-    case JNothing => throw new NothingException(name)
-    case e => throw new ParseException(s"JValue '$name' is not a JInt. Value: $e, Type: ${e.getClass}",null)
+    case _ => throw new NothingException
   }
   
-  def getLong(name: String, in: JValue): Long = in match {
+  def getLong(in: JValue): Long = in match {
     case JInt(int) => int.longValue()
-    case JNothing => throw new NothingException(name)
-    case e => throw new ParseException(s"JValue '$name' is not a Long. Value: $e, Type: ${e.getClass}",null)
+    case _ => throw new NothingException
   }
   
-  def getFloat(name: String, in: JValue): Float = in match {
+  def getFloat(in: JValue): Float = in match {
     case JDouble(num)   => num.asInstanceOf[Float]
     case JDecimal(num)  => num.floatValue()
-    case JNothing => throw new NothingException(name)
-    case e => throw new ParseException(s"JValue '$name' is not a Float. Value: $e, Type: ${e.getClass}",null)
+    case _ => throw new NothingException
   }
   
-  def getDouble(name: String, in: JValue): Double = in match {
+  def getDouble( in: JValue): Double = in match {
     case JDouble(num)   => num.asInstanceOf[Double]
     case JDecimal(num)  => num.doubleValue()
-    case JNothing => throw new NothingException(name)
-    case e => throw new ParseException(s"JValue '$name' is not a Double. Value: $e, Type: ${e.getClass}",null)
+    case _ => throw new NothingException
   }
   
-  def getString(name: String, in: JValue): String = in match {
+  def getString(in: JValue): String = in match {
     case JString(s) => s
-    case JNothing => throw new NothingException(name)
-    case e => throw new ParseException(s"JValue '$name' is not a JString. Value: $e, Type: ${e.getClass}",null)
+    case _ => throw new NothingException
   }
   
-  def getDate(name: String, in: Any, dateFormat: DateFormat): Date = in match {
+  def getDate(in: JValue, dateFormat: DateFormat): Date = in match {
     case JString(s) => dateFormat.parse(s).get
-    case JNothing => throw new NothingException(name)
-    case e => throw new ParseException(s"JValue '$name' is not a Date. Value: $e, Type: ${e.getClass}",null)
+    case _ => throw new NothingException
   }
   
   def optIdent[U](opt: Option[U]):Option[U] = opt
