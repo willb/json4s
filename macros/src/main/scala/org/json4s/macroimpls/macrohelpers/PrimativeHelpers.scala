@@ -51,7 +51,7 @@ object PrimativeHelpers {
     case JString(s) => dateFormat.parse(s).get
     case _ => throw new NothingException
   }
-  
+
   def optIdent[U](opt: Option[U]):Option[U] = opt
 }
 
