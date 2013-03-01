@@ -5,20 +5,24 @@ import scala.reflect.macros.Context
 
 import org.json4s.ParserUtil.ParseException
 import org.json4s._
+import annotation.tailrec
 
 class JsonStructureException(expected: Class[_], received: Class[_]) extends ParseException(
-  s"Json error: Type received ($received) but expected ($expected).", null)
+  s"Received JValue type ($received) but expected ($expected).", null)
 
 object PrimativeHelpers {
   import org.json4s.DateFormat
 
-  def getValueByName(obj: JValue, name: String): Option[JValue] = obj match {
-    case JObject(obj) =>
-      obj.find{ case (k, _) => k == name}
-        .map{ case (_, v) => v }
-    case _ => None  // TODO: Is this desired?
+  def getFieldByName(obj: JValue, name: String): Option[JValue] = obj match {
+    case JObject(fields) =>
+     @tailrec
+      def findField(name: String, lst: List[JField]): Option[JValue] = lst match {
+        case h::t if (h._1 == name) => Some(h._2)
+        case h::t => findField(name, t)
+        case Nil => None
+      }; findField(name, fields)
+    case _ => None  // TODO: Is this the desired result?
   }
-
 
   // Some helpers to make things a little more simple in the generated code
   def getInt(in: JValue): Int = in match {
