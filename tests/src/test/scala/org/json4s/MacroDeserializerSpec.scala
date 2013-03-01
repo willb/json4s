@@ -90,13 +90,13 @@ class Stopwatch {
 case class ObjWithDefJunk(name:String, junk:Junk=Junk(-1,"Default"))
 
 class MacroDeserializerSpec extends Specification {
+  import JsonDSL._
   implicit val defaultFormats = DefaultFormats
   val refJunk = Junk(2,"cats")
   //val refJunkDict = Map("d.in1"->refJunk.in1.toString,"d.in2"->refJunk.in2)
-  val refJunkDict: JValue = serObject(refJunk)
+  val refJunkDict: JValue = serializeObj(refJunk)
 
   "Macros.deserialize" should {
-    import JsonDSL._
 
     "Build maps of primatives with string key" in {
       val expected = Map[String, Int](("a" -> 1), ("b" -> 2), ("c" -> 3))
@@ -138,6 +138,7 @@ class MacroDeserializerSpec extends Specification {
       val params = new mutable.MutableList[JObject]()
       import scala.util.Random
       val numObjs = 60000
+      val cycles = 1000
       (0 until numObjs) foreach{ i =>
         val thng = ThingWithJunk("name_"+i,Junk(Random.nextInt,"junker"+Random.nextInt))
         stuff += thng
@@ -146,11 +147,13 @@ class MacroDeserializerSpec extends Specification {
       }
       val fullParams = params.toList
       val stopwatch = new Stopwatch
-      var result = deserialize[List[ThingWithJunk]](fullParams)
+      var result = deserialize[List[ThingWithJunk]](fullParams) // Warmup
       stopwatch.start
-      result = deserialize[List[ThingWithJunk]](fullParams)
+      (0 until cycles).foreach { _ =>
+        result = deserialize[List[ThingWithJunk]](fullParams)
+      }
       stopwatch.stop
-      println(s"--------------- Time to deserialize $numObjs objects: ${stopwatch.getElapsedTime} millisec ------------------")
+      println(s"--------------- Time to deserialize ${numObjs*cycles} objects: ${stopwatch.getElapsedTime} millisec ------------------")
       result must_== stuff.toList
     }
 
@@ -358,6 +361,20 @@ class MacroDeserializerSpec extends Specification {
     "Throw ParseException with a bad map value for 'in'" in {
       val params: JValue = ("in1" -> "2ffds") ~ ("in2" -> "cats")
       deserialize[Junk](params) must throwA[ParseException]
+    }
+  }
+
+  "deserializeEither" should {
+    "Give the Left on error" in {
+      val params: JValue = ("in1" -> "2ffds") ~ ("in2" -> "cats")
+      val result = deserializeEither[Junk](params)
+      result must beAnInstanceOf[Left[ParseException, Junk]]
+    }
+
+    "Give the Right on Success" in {
+      val params: JValue = ("in1" -> 2) ~ ("in2" -> "cats")
+      val result = deserializeEither[Junk](params)
+      result must beAnInstanceOf[Right[ParseException, Junk]]
     }
   }
 }
