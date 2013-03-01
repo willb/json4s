@@ -4,6 +4,7 @@ import org.specs2.mutable.Specification
 import java.util.Date
 import org.json4s.ParserUtil.ParseException
 import Macros._
+import collection.mutable
 
 case class Junk(in1:Int, in2:String)
 case class MutableJunk(var in1:Int,var in2:String)
@@ -96,60 +97,63 @@ class MacroDeserializerSpec extends Specification {
 
   "Macros.deserialize" should {
     import JsonDSL._
-    /*
-    "Build maps of primatives with string key" in {
-      val data = Map("dd.a"->"1","dd.b" ->"2", "dd.c" -> "3")
-      val expected = data.map { case (k,v) => (k.split("""\.""")(1),v.toInt) }
 
-      deserialize[Map[String,Int]](data,"dd") must_== expected
+    "Build maps of primatives with string key" in {
+      val expected = Map[String, Int](("a" -> 1), ("b" -> 2), ("c" -> 3))
+      val params: JValue = expected
+
+      deserialize[Map[String,Int]](params) must_== expected
     }
 
     "Build maps of primatives with Int key" in {
-      val data = Map("dd.1"->"1","dd.2" ->"2", "dd.100" -> "3")
-      val expected = data.map { case (k,v) => (k.split("""\.""")(1).toInt,v.toInt) }
+      val expected = Map(1 -> 1, 2 -> 2, 100 -> 3)
+      val data: JValue = expected.map{case (k,v) => (k.toString, v)}
 
-      deserialize[Map[Int,Int]](data,"dd") must_== expected
+      deserialize[Map[Int,Int]](data) must_== expected
     }
 
+
     "Build maps of Junks with string key" in {
-      val data = Map("dd.a.in1"->"1","dd.a.in2"->"aaa","dd.b.in1" ->"2","dd.b.in2"->"bbb", "dd.c.in1" -> "3","dd.c.in2"->"ccc")
+      //val data: JValue = "dd.a.in1"->"1","dd.a.in2"->"aaa","dd.b.in1" ->"2","dd.b.in2"->"bbb", "dd.c.in1" -> "3","dd.c.in2"->"ccc")
+      val data: JValue = ("a" -> (("in1" -> 1) ~ ("in2" -> "aaa"))) ~
+        ("b" -> (("in1" -> 2) ~ ("in2" -> "bbb"))) ~
+        ("c" -> (("in1" -> 3) ~ ("in2" -> "ccc")))
+
       val expected = Map("a"->Junk(1,"aaa"),"b"->Junk(2,"bbb"),"c"->Junk(3,"ccc"))
 
-      deserialize[Map[String,Junk]](data,"dd") must_== expected
+      deserialize[Map[String,Junk]](data) must_== expected
     }
 
     "Build a map of objects with type parameters" in {
-      //case class WithTpeParams[U](in1:U)
-      val data = Map("dd.a.in1"->"2","dd.b.in1"->"3","dd.d.in1"->"4")
-      val expected = Map("a"->WithTpeParams(2),"b"->WithTpeParams(3),"d"->WithTpeParams(4))
-      deserialize[Map[String,WithTpeParams[Int]]](data,"dd") must_== expected
+      //val data = Map("dd.a.in1"->"2","dd.b.in1"->"3","dd.d.in1"->"4")
+      val data: JValue = ("a" -> ("in1" -> 2)) ~ ("b" -> ("in1" -> 3)) ~ ("c" -> ("in1" -> 4))
+      val expected = Map("a" -> WithTpeParams(2), "b" -> WithTpeParams(3), "c" -> WithTpeParams(4))
+      deserialize[Map[String,WithTpeParams[Int]]](data) must_== expected
     }
 
     "Make a lot of things" in {
       //Junk(in1:Int, in2:String)
       //ThingWithJunk(name:String, junk:Junk)
       val stuff = new scala.collection.mutable.MutableList[ThingWithJunk]()
-      val params = new scala.collection.mutable.HashMap[String,Any]
+      val params = new mutable.MutableList[JObject]()
       import scala.util.Random
-      val numObjs = 6
+      val numObjs = 60000
       (0 until numObjs) foreach{ i =>
         val thng = ThingWithJunk("name_"+i,Junk(Random.nextInt,"junker"+Random.nextInt))
         stuff += thng
-        val str = "dd["+i.toString + "]"
-        params+= str+".name" -> thng.name
-        params+= str+".junk.in1" -> thng.junk.in1.toString
-        params+= str+".junk.in2" -> thng.junk.in2
+        val json: JObject = ("name" -> thng.name) ~ ("junk" -> (("in1" -> thng.junk.in1) ~ ("in2" -> thng.junk.in2)))
+        params += json
       }
-      val mapParams = params.toMap
+      val fullParams = params.toList
       val stopwatch = new Stopwatch
-      var result = deserialize[List[ThingWithJunk]](mapParams,"dd")
+      var result = deserialize[List[ThingWithJunk]](fullParams)
       stopwatch.start
-      result = deserialize[List[ThingWithJunk]](mapParams,"dd")
+      result = deserialize[List[ThingWithJunk]](fullParams)
       stopwatch.stop
       println(s"--------------- Time to deserialize $numObjs objects: ${stopwatch.getElapsedTime} millisec ------------------")
       result must_== stuff.toList
     }
-    */
+
     "Primative Int" in {
       val expected:Int = 5
       val params = JInt(5)
@@ -353,7 +357,7 @@ class MacroDeserializerSpec extends Specification {
 
     "Throw ParseException with a bad map value for 'in'" in {
       val params: JValue = ("in1" -> "2ffds") ~ ("in2" -> "cats")
-      deserialize[Junk](params) must throwA[ParseException](message="Error parsing value 'in1' to Int")
+      deserialize[Junk](params) must throwA[ParseException]
     }
   }
 }
