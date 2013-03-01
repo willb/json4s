@@ -114,7 +114,7 @@ object Deserializer {
     def buildObject(tpe: Type, params: c.Expr[JValue]): Tree = {
       // simple types
       if      (tpe =:= typeOf[Int])    { rparseInt(params).tree    }
-      else if (tpe =:= typeOf[Long])   { rparseLong( params).tree   }
+      else if (tpe =:= typeOf[Long])   { rparseLong( params).tree  }
       else if (tpe =:= typeOf[Float])  { rparseFloat(params).tree  }
       else if (tpe =:= typeOf[Double]) { rparseDouble(params).tree }
       else if (tpe =:= typeOf[String]) { rparseString(params).tree }
@@ -131,18 +131,19 @@ object Deserializer {
         rparseList(tpe, params)
       }
       else { // Must be a complex object
-        val TypeRef(_, sym:Symbol, tpeArgs:List[Type]) = tpe
+        val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = tpe
         val ctorParams = tpe.member(nme.CONSTRUCTOR).asMethod.paramss
         
         val newObjTerm = newTermName(c.fresh("newObj$"))
         val newObjTypeTree = typeArgumentTree(tpe)
         val newObjTree = ValDef(Modifiers(), newObjTerm, newObjTypeTree,
-          New(newObjTypeTree, ctorParams.map{_.zipWithIndex.map {
+          New(newObjTypeTree, ctorParams.map(_.zipWithIndex.map {
             case (pSym, index) =>
             // Change out the types if it has type parameters
             val pTpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
-            val compName = LIT(pSym.name.decoded)
-            val (_, freshObj, freshObjTree) = getObjectField(compName, params)
+            val fieldName = LIT(pSym.name.decoded)
+            val (_, freshObj, freshObjTree) = getObjectField(fieldName, params)
+
             // If param has defaults, try to find the val in map, or call 
             // default evaluation from its companion object
             Block(freshObjTree ,if (pSym.asTerm.isParamWithDefault) {
@@ -150,7 +151,7 @@ object Deserializer {
                 try {
                   c.Expr(buildObject(pTpe, freshObj)).splice // splice in another obj tree
                 } catch {
-                  case e: JsonStructureException =>
+                  case e: ParseException =>
                     // Need to use the origional symbol.companionObj to get defaults
                     // Would be better to find the generated TermNames if possible
                     c.Expr(Select(Ident(sym.companionSymbol), newTermName(
@@ -158,9 +159,17 @@ object Deserializer {
                     ).splice
                 }
               }.tree
-            } else buildObject(pTpe, freshObj)) // Required
-            
-          }}) // Using the New(Tree, List(List(Tree))) constructor
+            } else (reify { // repackage the exception to be more informative
+              try c.Expr(buildObject(pTpe, freshObj)).splice
+              catch {
+                case e: ParseException =>
+                  val msg = "Error getting field '" + fieldName.splice +
+                             "' in object of type '" + LIT(tpe.toString).splice +
+                             "'. Reason: " + e.toString
+                  throw new ParseException(msg, e)
+              }
+            }.tree)) // Required
+          })) // Using the New(Tree, List(List(Tree))) constructor
         ) // newObjTree ValDef
         
         // Generate the code for setting fields not in the constructor
@@ -178,7 +187,7 @@ object Deserializer {
               )
             )).splice
             } catch { // Don't care if they fail
-              case _ : JsonStructureException =>
+              case _: JsonStructureException =>
             }
           }.tree)
         }
