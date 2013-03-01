@@ -368,6 +368,7 @@ class MacroDeserializerSpec extends Specification {
     "Give the Left on error" in {
       val params: JValue = ("in1" -> "2ffds") ~ ("in2" -> "cats")
       val result = deserializeEither[Junk](params)
+      println(s"DEBUG The error was: ${result.left.get}")
       result must beAnInstanceOf[Left[ParseException, Junk]]
     }
 
