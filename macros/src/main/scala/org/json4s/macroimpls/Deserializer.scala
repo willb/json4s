@@ -15,6 +15,12 @@ object Deserializer {
   import java.util.Date
   import org.json4s.Formats
 
+  def eitherDeserialize_impl[U: c.WeakTypeTag](c: Context)(params: c.Expr[JValue])
+         (defaultFormats: c.Expr[Formats]): c.Expr[Either[ParserUtil.ParseException,U]] =  c.universe.reify {
+    try { Right(deserialize_impl(c)(params)(defaultFormats).splice) }
+    catch { case e: ParserUtil.ParseException => Left(e) }
+  }
+
   // The meat and potatoes of the implementation.
   def deserialize[U](params: JValue)(implicit defaultFormats: Formats) = macro deserialize_impl[U]
   def deserialize_impl[U: c.WeakTypeTag](c: Context)(params: c.Expr[JValue])
@@ -28,37 +34,8 @@ object Deserializer {
     import helpers._
 
 
-    
-    // For generating new new params set down the tree one step
-    def genFreshParams(name: c.Expr[String], params: c.Expr[JValue]):(TermName, c.Expr[JValue], Tree) = {
-      val freshNme = newTermName(c.fresh("freshJValue$"))
-      val freshParams = c.Expr[JValue](Ident(freshNme))
-      
-      val freshParamsTree = ValDef( // Need to use a fresh name to avoid stuff like 'val nme = nme'
-                    Modifiers(), 
-                    freshNme,
-                    TypeTree(typeOf[JValue]),
-                    reify(
-                      getValueByName(params.splice, name.splice)
-                        .getOrElse(JNothing)
-                    ).tree
-                  )
-      (freshNme, freshParams, freshParamsTree)
-    }
-
     def rparseList(tpe:Type, params: c.Expr[JValue]): Tree = {
       val TypeRef(_, _, List(argTpe)) = tpe
-      
-      /*val (freshNme, freshParams, freshParamsTree) = genFreshParams(name, params)
-      
-      val listNme = newTermName("lst")
-      val listTree = ValDef(
-                      Modifiers(MUTABLE),
-                      listNme,
-                      typeArgumentTree(tpe),
-                      reify{Nil}.tree
-      )
-      */
       val wrappedIndex: c.Expr[JValue] = c.Expr[JValue](Ident("i"))
       
       reify{
@@ -165,13 +142,13 @@ object Deserializer {
             // Change out the types if it has type parameters
             val pTpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
             val compName = LIT(pSym.name.decoded)
-            val (_, freshParams, freshParamsTree) = genFreshParams(compName, params)
+            val (_, freshObj, freshObjTree) = getObjectField(compName, params)
             // If param has defaults, try to find the val in map, or call 
             // default evaluation from its companion object
-            Block(freshParamsTree ,if (pSym.asTerm.isParamWithDefault) {
+            Block(freshObjTree ,if (pSym.asTerm.isParamWithDefault) {
               reify {
                 try {
-                  c.Expr(buildObject(pTpe, freshParams)).splice // splice in another obj tree
+                  c.Expr(buildObject(pTpe, freshObj)).splice // splice in another obj tree
                 } catch {
                   case e: JsonStructureException =>
                     // Need to use the origional symbol.companionObj to get defaults
@@ -181,7 +158,7 @@ object Deserializer {
                     ).splice
                 }
               }.tree
-            } else buildObject(pTpe, freshParams)) // Required
+            } else buildObject(pTpe, freshObj)) // Required
             
           }}) // Using the New(Tree, List(List(Tree))) constructor
         ) // newObjTree ValDef
@@ -191,13 +168,13 @@ object Deserializer {
         val setParamsBlocks = vars map { vari =>
           val varName = vari.name.toTermName.toString.trim
           val compName = LIT(varName)
-          val (_, freshParams, freshParamsTree) = genFreshParams(compName, params)
-          Block(freshParamsTree, reify{
+          val (_, freshObj, freshObjTree) = getObjectField(compName, params)
+          Block(freshObjTree, reify{
             try {
             c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)),
               buildObject(
                 vari.typeSignature,
-                freshParams
+                freshObj
               )
             )).splice
             } catch { // Don't care if they fail
