@@ -21,7 +21,7 @@ object PrimativeHelpers {
         case h::t => findField(name, t)
         case Nil => None
       }; findField(name, fields)
-    case _ => None  // TODO: Is this the desired result?
+    case _ => throw new JsonStructureException(JObject.getClass(), obj.getClass())
   }
 
   // Some helpers to make things a little more simple in the generated code

@@ -157,6 +157,25 @@ class MacroSerializerSpec extends Specification {
       ))
     }
 
+    "Serialize a Date" in {
+      val writer = JsonWriter.ast
+      val date = new java.util.Date
+      serialize(date, "date", writer)
+      val json = writer.result
+
+      json must_== JObject(List(("date",JString(defaultFormats.dateFormat.format(date)))))
+    }
+
+    "Serialize a Symbol" in {
+      val writer = JsonWriter.ast
+      val sym = 'cool
+      serialize(sym, "symbol", writer)
+      val json = writer.result
+      println(json)
+
+      json must_== JObject(List(("symbol", JString("cool"))))
+    }
+
     // --------------- Serialize Object -------------------
     "serializeObj should build primative case classes" in {
       val sim = Simple(1, "two")
