@@ -95,8 +95,12 @@ object Deserializer {
       getDouble(params.splice)
     }
     
-    def rparseString(params: c.Expr[JValue]) = reify{
+    def rparseString(params: c.Expr[JValue]) = reify {
       getString(params.splice)
+    }
+
+    def rparseSymbol(params: c.Expr[JValue]) = reify {
+      Symbol(getString(params.splice))
     }
 
     def rparseOption(tpe:Type, params: c.Expr[JValue]):Tree = {
@@ -113,12 +117,13 @@ object Deserializer {
     // The really heavyweight function. Most of the magic happens in the last else statement
     def buildObject(tpe: Type, params: c.Expr[JValue]): Tree = {
       // simple types
-      if      (tpe =:= typeOf[Int])    { rparseInt(params).tree    }
-      else if (tpe =:= typeOf[Long])   { rparseLong( params).tree  }
-      else if (tpe =:= typeOf[Float])  { rparseFloat(params).tree  }
-      else if (tpe =:= typeOf[Double]) { rparseDouble(params).tree }
-      else if (tpe =:= typeOf[String]) { rparseString(params).tree }
-      else if (tpe =:= typeOf[Date])   { rparseDate(params).tree   }
+      if      (tpe =:= typeOf[Int])          { rparseInt(params).tree    }
+      else if (tpe =:= typeOf[Long])         { rparseLong( params).tree  }
+      else if (tpe =:= typeOf[Float])        { rparseFloat(params).tree  }
+      else if (tpe =:= typeOf[Double])       { rparseDouble(params).tree }
+      else if (tpe =:= typeOf[String])       { rparseString(params).tree }
+      else if (tpe =:= typeOf[Date])         { rparseDate(params).tree   }
+      else if (tpe =:= typeOf[scala.Symbol]) { rparseSymbol(params).tree }
 
       // The privileged types
       else if (tpe.erasure <:< typeOf[Option[Any]]) {
