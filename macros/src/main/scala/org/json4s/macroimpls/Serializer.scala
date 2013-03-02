@@ -2,6 +2,7 @@ package org.json4s.macroimpls
 
 import language.experimental.macros
 import scala.reflect.macros.Context
+import java.util.Date
 
 import org.json4s.{Formats, JsonWriter, JValue, JObject}
 import macrohelpers._
@@ -87,7 +88,6 @@ object Serializer {
     }.tree
     val writerStack = c.Expr[WriterStack](Ident("writerStack"))
 
-    // TODO: Add Date and Symbol abilities
     val primitiveTypes = typeOf[Int]::typeOf[String]::
                           typeOf[Float]::typeOf[Double]::
                           typeOf[Boolean]::typeOf[Long]::
@@ -102,12 +102,26 @@ object Serializer {
         reify{}
       } else reify{writerStack.splice.startField(name.splice)}
       
-      if(primitiveTypes.exists(_ =:= tpe)) { // Must be primative
+      if (primitiveTypes.exists(_ =:= tpe)) { // Must be primitive
         reify{
           startFieldExpr.splice
           writerStack.splice.primative(c.Expr(path).splice)
         }.tree
-      } 
+      }
+
+      else if (tpe =:= typeOf[scala.Symbol]) {
+        reify {
+          startFieldExpr.splice
+          writerStack.splice.primative(c.Expr[scala.Symbol](path).splice.name)
+        }.tree
+      }
+
+      else if (tpe =:= typeOf[Date]) {
+        reify{
+          startFieldExpr.splice
+          writerStack.splice.primative(defaultFormats.splice.dateFormat.format(c.Expr[Date](path).splice))
+        }.tree
+      }
       // Handle the lists
       else if(tpe <:< typeOf[scala.collection.Seq[Any]]) {
         val TypeRef(_, sym:Symbol, pTpe::Nil) = tpe
@@ -158,7 +172,7 @@ object Serializer {
       } 
       
       else {  // Complex object
-        val TypeRef(_, sym:Symbol, tpeArgs:List[Type]) = tpe
+        val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = tpe
         // get fields
         val fields = getVars(tpe):::getVals(tpe)
         val fieldTrees = fields map { pSym => 
@@ -180,13 +194,9 @@ object Serializer {
     
     val code = Block(
       writerStackDef::
-      reify(
-        writerStack.splice.startObject()
-      ).tree::
+      reify( writerStack.splice.startObject()).tree::
       dumpObject(weakTypeOf[U], obj.tree, name)::
-      reify(
-        writerStack.splice.endObject()
-      ).tree::Nil,
+      reify(writerStack.splice.endObject()).tree::Nil,
       c.literalUnit.tree
     )
     // println(s"------------------ Debug: Generated Code ------------------\n $code")

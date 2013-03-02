@@ -169,6 +169,12 @@ class MacroDeserializerSpec extends Specification {
       deserialize[Long](params) must_== expected
     }
 
+    "Primative Symbol" in {
+      val expected = 'Cool
+      val params = JString("Cool")
+      deserialize[Symbol](params) must_== expected
+    }
+
     "Generate a Junk" in {
       deserialize[Junk](refJunkDict) must_== refJunk
     }
