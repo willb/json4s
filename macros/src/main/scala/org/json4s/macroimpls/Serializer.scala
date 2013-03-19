@@ -66,130 +66,242 @@ object Serializer {
     val Block(writerStackDef::Nil, _) = reify{
       val writerStack = new WriterStack(writer.splice)
     }.tree
+
     val writerStack = c.Expr[WriterStack](Ident("writerStack"))
 
-    def dateExpr(t: Tree) = reify{writerStack.splice.string(defaultFormats.splice.dateFormat.format(c.Expr[Date](t).splice))}
+    def dateExpr(t: Tree) = reify{
+      writerStack.splice.string(defaultFormats.splice.dateFormat.format(c.Expr[Date](t).splice))
+    }
+
     def symbolExpr(t: Tree) = reify{writerStack.splice.string(c.Expr[scala.Symbol](t).splice.name)}
 
-    val primitiveTypes = (typeOf[Int], (t: Tree) => reify{writerStack.splice.int(c.Expr[Int](t).splice)})::
-                         (typeOf[String], (t: Tree) => reify{writerStack.splice.string(c.Expr[String](t).splice)})::
-                         (typeOf[Float], (t: Tree) => reify{writerStack.splice.float(c.Expr[Float](t).splice)})::
-                         (typeOf[Double], (t: Tree) => reify{writerStack.splice.double(c.Expr[Double](t).splice)})::
-                         (typeOf[Boolean], (t: Tree) => reify{writerStack.splice.boolean(c.Expr[Boolean](t).splice)})::
-                         (typeOf[Long], (t: Tree) => reify{writerStack.splice.long(c.Expr[Long](t).splice)})::
-                         (typeOf[Byte], (t: Tree) => reify{writerStack.splice.byte(c.Expr[Byte](t).splice)})::
-                         (typeOf[BigInt], (t: Tree) => reify{writerStack.splice.bigInt(c.Expr[BigInt](t).splice)})::
-                         (typeOf[Short], (t: Tree) => reify{writerStack.splice.short(c.Expr[Short](t).splice)})::
-                         (typeOf[BigDecimal], (t: Tree) => reify{writerStack.splice.bigDecimal(c.Expr[BigDecimal](t).splice)})::
-      Nil
+    val primitiveTypes =
+             (typeOf[Int], (t: Tree) => reify{writerStack.splice.int(c.Expr[Int](t).splice)})::
+             (typeOf[String], (t: Tree) => reify{writerStack.splice.string(c.Expr[String](t).splice)})::
+             (typeOf[Float], (t: Tree) => reify{writerStack.splice.float(c.Expr[Float](t).splice)})::
+             (typeOf[Double], (t: Tree) => reify{writerStack.splice.double(c.Expr[Double](t).splice)})::
+             (typeOf[Boolean], (t: Tree) => reify{writerStack.splice.boolean(c.Expr[Boolean](t).splice)})::
+             (typeOf[Long], (t: Tree) => reify{writerStack.splice.long(c.Expr[Long](t).splice)})::
+             (typeOf[Byte], (t: Tree) => reify{writerStack.splice.byte(c.Expr[Byte](t).splice)})::
+             (typeOf[BigInt], (t: Tree) => reify{writerStack.splice.bigInt(c.Expr[BigInt](t).splice)})::
+             (typeOf[Short], (t: Tree) => reify{writerStack.splice.short(c.Expr[Short](t).splice)})::
+             (typeOf[BigDecimal], (t: Tree) => reify{writerStack.splice.bigDecimal(c.Expr[BigDecimal](t).splice)})::
+             Nil
     
     
     // Assumes that you are already in an object or list
-    def dumpObject(tpe: Type, path: Tree, name: c.Expr[String], isList: Boolean=false): c.Tree = {
-      
-      val startFieldExpr = if(isList) {
-        reify{}
-      } else reify{writerStack.splice.startField(name.splice)}
-      
-      if (primitiveTypes.exists(_._1 =:= tpe)) { // Must be primitive
+
+    // TODO: This needs to be inverted so that it assumes that you have a complex object, and wants to serialize the fields.
+    def dumpObject(oldTpe: Type, path: Tree, isList: Boolean=false): c.Tree = {
+
+      val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = oldTpe
+      // get fields
+      val fields = getVars(oldTpe):::getVals(oldTpe)
+
+      // The mapping method to build all the trees ///////////////////////////////////////
+      val fieldTrees = fields.map{ pSym =>
+
+        val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = oldTpe
+        val tpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
+
+        val fieldName = pSym.name.decoded.trim    // Do I need to trim here?
+        val fieldPath = Select(path, newTermName(fieldName))
+
+        val startFieldExpr = if(isList) {
+          reify{}
+        } else reify{writerStack.splice.startField(LIT(fieldName).splice)}
+
+        val fieldTree: c.Tree = if (primitiveTypes.exists(_._1 =:= tpe)) { // Must be primitive
         val expr = primitiveTypes.find(_._1 =:= tpe).get._2
-        reify{
-          startFieldExpr.splice
-          expr(path).splice  //writerStack.splice.primative(c.Expr(path).splice)
-        }.tree
-      }
-
-      else if (tpe =:= typeOf[scala.Symbol]) {
-        reify {
-          startFieldExpr.splice
-          symbolExpr(path).splice
-        }.tree
-      }
-
-      else if (tpe =:= typeOf[Date]) {
-        reify{
-          startFieldExpr.splice
-          dateExpr(path).splice
-        }.tree
-      }
-      // Handle the lists
-      else if(tpe <:< typeOf[scala.collection.Seq[Any]]) {
-        val TypeRef(_, sym:Symbol, pTpe::Nil) = tpe
-        reify{
-          startFieldExpr.splice
-          writerStack.splice.startArray()
-          c.Expr[scala.collection.Seq[Any]](path).splice.foreach { i =>
-            c.Expr(dumpObject(pTpe, Ident("i"), LIT(""), isList=true)).splice
-          }
-          writerStack.splice.endArray()
-        }.tree
-      } 
-      
-      else if(tpe <:< typeOf[scala.collection.GenMap[Any, Any]].erasure) {
-        val TypeRef(_, _, keyTpe::valTpe::Nil) = tpe
-        
-        if(!primitiveTypes.exists(_._1 =:= keyTpe)) {
-          c.abort(c.enclosingPosition,
-            s"Maps nees to have keys of primative type! Type: $keyTpe")
+          reify{
+            expr(fieldPath).splice  //writerStack.splice.primative(c.Expr(path).splice)
+          }.tree
         }
-        val kExpr = c.Expr[String](Ident("kstr"))
-        reify{
-          startFieldExpr.splice
-          writerStack.splice.startObject()
-          c.Expr[scala.collection.GenMap[Any, Any]](path).splice.foreach { case (k, v) =>
-            val kstr = k.toString
-            c.Expr(dumpObject(valTpe, Ident("v"), kExpr)).splice
-          }
-          writerStack.splice.endObject()
-          
-        }.tree
-        
-      // Handle Options
-      } else if(tpe <:< typeOf[Option[Any]]) {
-        val TypeRef(_, _ :Symbol, pTpe::Nil) = tpe
-        reify{
-        // I would be happier if I could to c.Expr[Option["real type"]]
-        // but this seems to work. I'm not sure if its just for type
-        // checking in reify or what...
-          PrimativeHelpers.optIdent(c.Expr[Option[Any]](path).splice) match {
-            case Some(x) => c.Expr[Unit](dumpObject(pTpe, Ident("x"), name)).splice
-            case None    => {
-              startFieldExpr.splice
-              writerStack.splice.addJValue(org.json4s.JNothing)
+
+        else if (tpe =:= typeOf[scala.Symbol]) { symbolExpr(fieldPath).tree }
+
+
+        else if (tpe =:= typeOf[Date]) {
+          reify{
+            dateExpr(fieldPath).splice
+          }.tree
+        }
+        // Handle the lists
+        else if(tpe <:< typeOf[scala.collection.Seq[Any]]) {
+          val TypeRef(_, sym:Symbol, pTpe::Nil) = tpe
+          reify{
+            writerStack.splice.startArray()
+            c.Expr[scala.collection.Seq[Any]](path).splice.foreach { i =>
+              c.Expr(dumpObject(pTpe, Ident("i"), isList=true)).splice
             }
-          }
-        }.tree
-      } 
-      
-      else {  // Complex object
-        val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = tpe
-        // get fields
-        val fields = getVars(tpe):::getVals(tpe)
-        val fieldTrees = fields map { pSym => 
-          val pTpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
-          val fieldName = pSym.name.decoded.trim    // Do I need to trim here?
-          val fieldPath = Select(path, newTermName(fieldName))
-          dumpObject(pTpe, fieldPath, LIT(fieldName))
+            writerStack.splice.endArray()
+          }.tree
         }
-        
-        // Return add all the blocks for each field and pop this obj off the stack
-        Block(
-        reify{
-          startFieldExpr.splice
-          writerStack.splice.startObject()
-        }.tree::fieldTrees,
-        reify{writerStack.splice.endObject()}.tree)
+
+        else if(tpe <:< typeOf[scala.collection.GenMap[Any, Any]].erasure) {
+          val TypeRef(_, _, keyTpe::valTpe::Nil) = tpe
+
+          if(!primitiveTypes.exists(_._1 =:= keyTpe)) {
+            c.abort(c.enclosingPosition,
+              s"Maps nees to have keys of primative type! Type: $keyTpe")
+          }
+          val kExpr = c.Expr[String](Ident("kstr"))
+          reify{
+            writerStack.splice.startObject()
+            c.Expr[scala.collection.GenMap[Any, Any]](path).splice.foreach { case (k, v) =>
+              val kstr = k.toString
+              c.Expr(dumpObject(valTpe, kExpr.tree)).splice
+            }
+            writerStack.splice.endObject()
+
+          }.tree
+
+          // Handle Options
+        } else if(tpe <:< typeOf[Option[Any]]) {
+          val TypeRef(_, _ :Symbol, pTpe::Nil) = tpe
+          reify{
+            // I would be happier if I could to c.Expr[Option["real type"]]
+            // but this seems to work. I'm not sure if its just for type
+            // checking in reify or what...
+            PrimativeHelpers.optIdent(c.Expr[Option[Any]](fieldPath).splice) match {
+              case Some(x) => c.Expr[Unit](dumpObject(pTpe, Ident("x"))).splice
+              case None    => {
+                writerStack.splice.addJValue(org.json4s.JNothing)
+              }
+            }
+          }.tree
+        }
+
+        else {  // Complex object
+//        val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = tpe
+//          // get fields
+//          val fields = getVars(tpe):::getVals(tpe)
+//          val fieldTrees = fields map { pSym =>
+//            val pTpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
+//            val fieldName = pSym.name.decoded.trim    // Do I need to trim here?
+//            val fieldPath = Select(path, newTermName(fieldName))
+//            dumpObject(pTpe, fieldPath)
+//          }
+//
+//          // Return add all the blocks for each field and pop this obj off the stack
+//          Block(
+//            reify{
+//              writerStack.splice.startObject()
+//            }.tree::fieldTrees,
+//            reify{writerStack.splice.endObject()}.tree)
+//        }
+          dumpObject(tpe, fieldPath)
+        } // dumpObject map
+        Block(startFieldExpr.tree, fieldTree)
       }
+
+      // Return add all the blocks for each field and pop this obj off the stack
+      Block(
+        reify{
+          //startFieldExpr.splice
+          writerStack.splice.startObject()
+        }.tree::fieldTrees:::
+        reify{writerStack.splice.endObject()}.tree::Nil: _*)
+      
+//      if (primitiveTypes.exists(_._1 =:= tpe)) { // Must be primitive
+//        val expr = primitiveTypes.find(_._1 =:= tpe).get._2
+//        reify{
+//          startFieldExpr.splice
+//          expr(path).splice  //writerStack.splice.primative(c.Expr(path).splice)
+//        }.tree
+//      }
+//
+//      else if (tpe =:= typeOf[scala.Symbol]) {
+//        reify {
+//          startFieldExpr.splice
+//          symbolExpr(path).splice
+//        }.tree
+//      }
+//
+//      else if (tpe =:= typeOf[Date]) {
+//        reify{
+//          startFieldExpr.splice
+//          dateExpr(path).splice
+//        }.tree
+//      }
+//      // Handle the lists
+//      else if(tpe <:< typeOf[scala.collection.Seq[Any]]) {
+//        val TypeRef(_, sym:Symbol, pTpe::Nil) = tpe
+//        reify{
+//          startFieldExpr.splice
+//          writerStack.splice.startArray()
+//          c.Expr[scala.collection.Seq[Any]](path).splice.foreach { i =>
+//            c.Expr(dumpObject(pTpe, Ident("i"), LIT(""), isList=true)).splice
+//          }
+//          writerStack.splice.endArray()
+//        }.tree
+//      }
+//
+//      else if(tpe <:< typeOf[scala.collection.GenMap[Any, Any]].erasure) {
+//        val TypeRef(_, _, keyTpe::valTpe::Nil) = tpe
+//
+//        if(!primitiveTypes.exists(_._1 =:= keyTpe)) {
+//          c.abort(c.enclosingPosition,
+//            s"Maps nees to have keys of primative type! Type: $keyTpe")
+//        }
+//        val kExpr = c.Expr[String](Ident("kstr"))
+//        reify{
+//          startFieldExpr.splice
+//          writerStack.splice.startObject()
+//          c.Expr[scala.collection.GenMap[Any, Any]](path).splice.foreach { case (k, v) =>
+//            val kstr = k.toString
+//            c.Expr(dumpObject(valTpe, Ident("v"), kExpr)).splice
+//          }
+//          writerStack.splice.endObject()
+//
+//        }.tree
+//
+//      // Handle Options
+//      } else if(tpe <:< typeOf[Option[Any]]) {
+//        val TypeRef(_, _ :Symbol, pTpe::Nil) = tpe
+//        reify{
+//        // I would be happier if I could to c.Expr[Option["real type"]]
+//        // but this seems to work. I'm not sure if its just for type
+//        // checking in reify or what...
+//          PrimativeHelpers.optIdent(c.Expr[Option[Any]](path).splice) match {
+//            case Some(x) => c.Expr[Unit](dumpObject(pTpe, Ident("x"), name)).splice
+//            case None    => {
+//              startFieldExpr.splice
+//              writerStack.splice.addJValue(org.json4s.JNothing)
+//            }
+//          }
+//        }.tree
+//      }
+//
+//      else {  // Complex object
+//        val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = tpe
+//        // get fields
+//        val fields = getVars(tpe):::getVals(tpe)
+//        val fieldTrees = fields map { pSym =>
+//          val pTpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
+//          val fieldName = pSym.name.decoded.trim    // Do I need to trim here?
+//          val fieldPath = Select(path, newTermName(fieldName))
+//          dumpObject(pTpe, fieldPath, LIT(fieldName))
+//        }
+//
+//        // Return add all the blocks for each field and pop this obj off the stack
+//        Block(
+//        reify{
+//          //startFieldExpr.splice
+//          writerStack.splice.startObject()
+//        }.tree::fieldTrees,
+//        reify{writerStack.splice.endObject()}.tree)
+//      }
     } // dumpObject
     
     val code = Block(
       writerStackDef::
-      reify( writerStack.splice.startObject()).tree::
-      dumpObject(weakTypeOf[U], obj.tree, name)::
-      reify(writerStack.splice.endObject()).tree::Nil,
+      //reify( writerStack.splice.startObject()).tree::
+      dumpObject(weakTypeOf[U], obj.tree)::Nil,
+      //reify(writerStack.splice.endObject()).tree::Nil,
       c.literalUnit.tree
     )
-    // println(s"------------------ Debug: Generated Code ------------------\n $code")
+    println(s"------------------ Debug: Generated Code ------------------\n $code")
     c.Expr[Unit](code)
   }
   
