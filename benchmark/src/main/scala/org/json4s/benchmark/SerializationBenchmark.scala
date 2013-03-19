@@ -5,6 +5,7 @@ import java.util.Date
 import com.fasterxml.jackson.databind.{JsonNode, DeserializationFeature, ObjectMapper}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import java.util.concurrent.atomic.AtomicInteger
+import java.io.StringWriter
 
 class Json4sBenchmark extends SimpleScalaBenchmark {
 
@@ -58,6 +59,13 @@ class Json4sBenchmark extends SimpleScalaBenchmark {
   }
 
   def timeJacksonSerialization(reps: Int) = repeat(reps) { mapper.writeValueAsString(project) }
+
+  //Macro  TODO: -- THROWS EXCEPTION --
+//  def timeMacroSerialization(reps: Int) = repeat(reps) {
+//    val writer = JsonWriter.streamingPretty(new StringWriter())
+//    Macros.serialize(project, "name", writer)
+//    writer.result
+//  }
 
   def timeJacksonDeserialization(reps: Int) = repeat(reps) { mapper.readValue(projectJson, classOf[Project]) }
 
