@@ -200,14 +200,14 @@ object build extends Build {
         "com.google.caliper" % "caliper" % "0.5-rc1",
         "com.google.code.gson" % "gson" % "1.7.1"
       ),
-      libraryDependencies += "com.fasterxml.jackson.module" % "jackson-module-scala_2.9.2" % "2.1.3",
+      libraryDependencies += "com.fasterxml.jackson.module" % "jackson-module-scala_2.10" % "2.1.3",
       runner in Compile in run <<= (thisProject, taskTemporaryDirectory, scalaInstance, baseDirectory, javaOptions, outputStrategy, javaHome, connectInput) map {
         (tp, tmp, si, base, options, strategy, javaHomeDir, connectIn) =>
           new MyRunner(tp.id, ForkOptions(javaHome = javaHomeDir, connectInput = connectIn, outputStrategy = strategy,
             runJVMOptions = options, workingDirectory = Some(base)) )
       }
     )
-  ) dependsOn(core, native, jacksonSupport, json4sExt, mongo)
+  ) dependsOn(core, native, jacksonSupport, json4sExt, mongo, macros)
 
 
 }
