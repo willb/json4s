@@ -65,6 +65,11 @@ class Json4sBenchmark extends SimpleScalaBenchmark {
 
   def timeJson4sDecomposition(reps: Int) = repeat(reps) { Extraction.decompose(project) }
 
+  // Macro
+  def timeJson4sMacroDecomposition(reps: Int) = repeat(reps) {
+    Macros.serializeObj[Project](project)
+  }
+
   def timeJson4sNativeFullCircle(reps: Int) = repeat(reps) {
     native.Serialization.read[Project](native.Serialization.write(project))
   }
@@ -72,6 +77,11 @@ class Json4sBenchmark extends SimpleScalaBenchmark {
   def timeJson4sNativeSerialization(reps: Int) = repeat(reps) {  native.Serialization.write(project) }
 
   def timeJson4sNativeDeserialization(reps: Int) = repeat(reps) { native.Serialization.read[Project](projectJson) }
+
+  // Macro
+  def timeJson4sMacroDeserialization(reps: Int) = repeat(reps) {
+    Macros.deserialize[Project](projectJValue)
+  }
 
   def timeJson4sNativeParsing(reps: Int) = repeat(reps) { native.JsonMethods.parse(glossaryJson) }
 
