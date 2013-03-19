@@ -1,7 +1,7 @@
 package org.json4s.macroimpls.macrohelpers
 
 import scala.reflect.macros.Context
-import org.json4s.{JValue, JNothing, JObject}
+import org.json4s.{JsonWriter, JValue, JNothing, JObject}
 
 
 class MacroHelpers[C <: Context](val c1: C) {
@@ -48,5 +48,4 @@ class MacroHelpers[C <: Context](val c1: C) {
     )
     (freshNme, freshObj, objFieldTree)
   }
-  
 }
