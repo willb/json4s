@@ -31,53 +31,6 @@ object JsonAST {
    */
   def concat(xs: JValue*) = xs.foldLeft(JNothing: JValue)(_ ++ _)
 
-//  sealed abstract class JsValue[+T] extends immutable.Seq[T] {
-//    def values: T
-//  }
-//  private trait SingleElementJsValue[+T] extends JsValue[T] {
-//    def length: Int = 1
-//    def apply(idx: Int): T = if (idx == 0) values else throw new IndexOutOfBoundsException("A JsString only has 1 element")
-//    def iterator: Iterator[T] = Iterator(values)
-//    override def isEmpty: Boolean = false
-//    override def head = values
-//    override def tail: immutable.Seq[T] = Nil
-//    override protected[this] def reversed: List[T] = List(values)
-//    override def nonEmpty: Boolean = true
-//  }
-//
-//  class JsString(val values: String) extends SingleElementJsValue[String]
-//  class JsInt(val values: BigInt) extends SingleElementJsValue[BigInt]
-//  class JsDecimal(val values: BigDecimal) extends SingleElementJsValue[BigDecimal]
-//  class JsBool(val values: Boolean) extends SingleElementJsValue[Boolean]
-//  object JsNull extends SingleElementJsValue[Null] { val values: Null = null }
-//
-//  class JsObject(val values: Seq[(String, JsValue[_])]) extends JsValue[(String, JsValue[_])] {
-//    def length: Int = values.length
-//    def apply(idx: Int): (String, JsValue[_]) = values(idx)
-//    def iterator: Iterator[(String, JsValue[_])] = values.iterator
-//  }
-//  class JsArray(val values: Seq[JsValue[_]]) extends JsValue[JsValue[_]] {
-//    def length: Int = values.length
-//    def apply(idx: Int): JsValue[_] = values.apply(idx)
-//    def iterator: Iterator[JsValue[_]] = values.iterator
-//  }
-//  object JsNothing extends JsValue[Nothing] {
-//    val values: Nothing = null.asInstanceOf[Nothing]
-//    val length: Int = 0
-//    def apply(idx: Int): Nothing = throw new IndexOutOfBoundsException("A JsNothing is empty")
-//    def iterator: Iterator[Nothing] = Iterator()
-//
-//    override def isEmpty = true
-//    override def head: Nothing =
-//      throw new NoSuchElementException("head of JsNothing")
-//    override def tail: List[Nothing] =
-//      throw new UnsupportedOperationException("tail of JsNothing")
-//    // Removal of equals method here might lead to an infinite recursion similar to IntMap.equals.
-//    override def equals(that: Any) = that match {
-//      case that1: JsValue[_] => that1.isEmpty
-//      case _ => false
-//    }
-//  }
 
   object JValue extends Merge.Mergeable
 
@@ -172,7 +125,7 @@ object JsonAST {
     type Values = String
     def values = s
   }
-  trait JNumber
+  trait JNumber {self: JValue =>}
   case class JDouble(num: Double) extends JValue with JNumber {
     type Values = Double
     def values = num
@@ -208,6 +161,15 @@ object JsonAST {
     def values = arr.map(_.values)
     override def apply(i: Int): JValue = arr(i)
   }
+<<<<<<< HEAD
+=======
+//
+//  case class LazyJArray(arr: Stream[JValue]) extends JValue {
+//    type Values = Stream[Any]
+//    def values = arr.map(_.values)
+//    override def apply(i: Int): JValue = arr(i)
+//  }
+>>>>>>> Pulled changes to JsonAST and json_writers from master.
 
   type JField = (String, JValue)
   object JField {
@@ -215,6 +177,7 @@ object JsonAST {
     def unapply(f: JField): Option[(String, JValue)] = Some(f)
   }
 
+<<<<<<< HEAD
   private[this] trait StringAppender[T] {
     def append(s: String): T
     def subj: T
@@ -246,6 +209,22 @@ object JsonAST {
       i += 1
     }
     appender.subj
+=======
+  private[json4s] def quote(s: String): String = quote(s, new StringWriter()).toString
+  private[json4s] def quote(s: String, writer: java.io.Writer): java.io.Writer = {
+    s map {
+      case '"' ⇒ "\\\""
+      case '\\' ⇒ "\\\\"
+      case '\b' ⇒ "\\b"
+      case '\f' ⇒ "\\f"
+      case '\n' ⇒ "\\n"
+      case '\r' ⇒ "\\r"
+      case '\t' ⇒ "\\t"
+      case c if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100')) ⇒ "\\u%04x".format(c: Int)
+      case c ⇒ c.toString
+    } foreach writer.append
+    writer
+>>>>>>> Pulled changes to JsonAST and json_writers from master.
   }
 }
 
