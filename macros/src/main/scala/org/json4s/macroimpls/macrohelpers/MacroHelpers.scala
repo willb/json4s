@@ -18,8 +18,8 @@ class MacroHelpers[C <: Context](val c1: C) {
     case _                                => Ident(t.typeSymbol.name)
   }
     
-  def getVars(tpe: Type): List[Symbol] = tpe.members.filter(_.asTerm.isVar).toList
-  def getVals(tpe: Type): List[Symbol] = tpe.members.filter(_.asTerm.isVal).toList
+  def getVars(tpe: Type): List[Symbol] = tpe.members.filter(_.isTerm).filter(_.asTerm.isVar).toList
+  def getVals(tpe: Type): List[Symbol] = tpe.members.filter(_.isTerm).filter(_.asTerm.isVal).toList
   
   def getNonConstructorVars(tpe: Type): List[Symbol] = {
     // Make sure that the param isn't part of the constructor

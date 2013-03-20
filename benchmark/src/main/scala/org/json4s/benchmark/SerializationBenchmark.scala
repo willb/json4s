@@ -75,7 +75,7 @@ class Json4sBenchmark extends SimpleScalaBenchmark {
 
   // Macro
   def timeJson4sMacroDecomposition(reps: Int) = repeat(reps) {
-    Macros.serializeObj[Project](project)
+    Macros.decompose(project)
   }
 
   def timeJson4sNativeFullCircle(reps: Int) = repeat(reps) {
