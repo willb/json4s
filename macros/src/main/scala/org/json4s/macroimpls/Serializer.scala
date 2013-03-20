@@ -116,12 +116,12 @@ object Serializer {
       val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = oldTpe
       val fields = getVars(oldTpe):::getVals(oldTpe) // get fields
 
-      val fieldTrees = fields.map { pSym =>
+      val fieldTrees = fields.flatMap { pSym =>
         val tpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
         val fieldName = pSym.name.decoded.trim
         val fieldPath = Select(path, newTermName(fieldName))
         val startFieldExpr =  reify{writerStack.splice.startField(LIT(fieldName).splice)}
-        Block(startFieldExpr.tree, buildTpe(tpe, fieldPath))
+        startFieldExpr.tree::buildTpe(tpe, fieldPath)::Nil
       }
 
       // Return add all the blocks for each field and pop this obj off the stack

@@ -18,8 +18,7 @@ class MacroSerializerSpec extends Specification {
   case class WithSymbol(symbol: Symbol)
 
   implicit val defaultFormats = DefaultFormats
-  
-  def jsonPrint(value:JValue) = compact(render(value))
+
   "Macro Serializer" should {
 
     "Build primative case classes" in {
