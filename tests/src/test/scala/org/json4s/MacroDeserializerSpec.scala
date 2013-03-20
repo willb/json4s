@@ -94,7 +94,7 @@ class MacroDeserializerSpec extends Specification {
   implicit val defaultFormats = DefaultFormats
   val refJunk = Junk(2,"cats")
   //val refJunkDict = Map("d.in1"->refJunk.in1.toString,"d.in2"->refJunk.in2)
-  val refJunkDict: JValue = serializeObj(refJunk)
+  val refJunkDict: JValue = decompose(refJunk)
 
   "Macros.deserialize" should {
 
@@ -129,32 +129,6 @@ class MacroDeserializerSpec extends Specification {
       val data: JValue = ("a" -> ("in1" -> 2)) ~ ("b" -> ("in1" -> 3)) ~ ("c" -> ("in1" -> 4))
       val expected = Map("a" -> WithTpeParams(2), "b" -> WithTpeParams(3), "c" -> WithTpeParams(4))
       deserialize[Map[String,WithTpeParams[Int]]](data) must_== expected
-    }
-
-    "Make a lot of things" in {
-      //Junk(in1:Int, in2:String)
-      //ThingWithJunk(name:String, junk:Junk)
-      val stuff = new scala.collection.mutable.MutableList[ThingWithJunk]()
-      val params = new mutable.MutableList[JObject]()
-      import scala.util.Random
-      val numObjs = 60000
-      val cycles = 1000
-      (0 until numObjs) foreach{ i =>
-        val thng = ThingWithJunk("name_"+i,Junk(Random.nextInt,"junker"+Random.nextInt))
-        stuff += thng
-        val json: JObject = ("name" -> thng.name) ~ ("junk" -> (("in1" -> thng.junk.in1) ~ ("in2" -> thng.junk.in2)))
-        params += json
-      }
-      val fullParams = params.toList
-      val stopwatch = new Stopwatch
-      var result = deserialize[List[ThingWithJunk]](fullParams) // Warmup
-      stopwatch.start
-      (0 until cycles).foreach { _ =>
-        result = deserialize[List[ThingWithJunk]](fullParams)
-      }
-      stopwatch.stop
-      println(s"--------------- Time to deserialize ${numObjs*cycles} objects: ${stopwatch.getElapsedTime} millisec ------------------")
-      result must_== stuff.toList
     }
 
     "Primative Int" in {
