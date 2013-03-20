@@ -4,7 +4,7 @@ import language.experimental.macros
 import scala.reflect.macros.Context
 import java.util.Date
 
-import org.json4s.{Formats, JsonWriter, JValue, JObject}
+import org.json4s.{Formats, JsonWriter, JValue}
 import macrohelpers._
 
 
@@ -55,22 +55,23 @@ object Serializer {
     val helpers = new macrohelpers.MacroHelpers[c.type](c)
     import helpers._
 
+    val Block(writerStackDef::Nil, _) = reify{ val writerStack = new WriterStack(writer.splice) }.tree
     val writerStack = c.Expr[WriterStack](Ident("writerStack"))
 
     val primitiveTypes =
-             (typeOf[Int], (t: Tree) => reify{writerStack.splice.int(c.Expr[Int](t).splice)})::
-             (typeOf[String], (t: Tree) => reify{writerStack.splice.string(c.Expr[String](t).splice)})::
-             (typeOf[Float], (t: Tree) => reify{writerStack.splice.float(c.Expr[Float](t).splice)})::
-             (typeOf[Double], (t: Tree) => reify{writerStack.splice.double(c.Expr[Double](t).splice)})::
-             (typeOf[Boolean], (t: Tree) => reify{writerStack.splice.boolean(c.Expr[Boolean](t).splice)})::
-             (typeOf[Long], (t: Tree) => reify{writerStack.splice.long(c.Expr[Long](t).splice)})::
-             (typeOf[Byte], (t: Tree) => reify{writerStack.splice.byte(c.Expr[Byte](t).splice)})::
-             (typeOf[BigInt], (t: Tree) => reify{writerStack.splice.bigInt(c.Expr[BigInt](t).splice)})::
-             (typeOf[Short], (t: Tree) => reify{writerStack.splice.short(c.Expr[Short](t).splice)})::
-             (typeOf[BigDecimal], (t: Tree) => reify{writerStack.splice.bigDecimal(c.Expr[BigDecimal](t).splice)})::
-             (typeOf[Date], (t: Tree) => reify{writerStack.splice.string(defaultFormats.splice.dateFormat.format(c.Expr[Date](t).splice))})::
-             (typeOf[scala.Symbol], (t: Tree) => reify{writerStack.splice.string(c.Expr[scala.Symbol](t).splice.name)})::
-              Nil
+       (typeOf[Int], (t: Tree) => reify{writerStack.splice.int(c.Expr[Int](t).splice)})::
+       (typeOf[String], (t: Tree) => reify{writerStack.splice.string(c.Expr[String](t).splice)})::
+       (typeOf[Float], (t: Tree) => reify{writerStack.splice.float(c.Expr[Float](t).splice)})::
+       (typeOf[Double], (t: Tree) => reify{writerStack.splice.double(c.Expr[Double](t).splice)})::
+       (typeOf[Boolean], (t: Tree) => reify{writerStack.splice.boolean(c.Expr[Boolean](t).splice)})::
+       (typeOf[Long], (t: Tree) => reify{writerStack.splice.long(c.Expr[Long](t).splice)})::
+       (typeOf[Byte], (t: Tree) => reify{writerStack.splice.byte(c.Expr[Byte](t).splice)})::
+       (typeOf[BigInt], (t: Tree) => reify{writerStack.splice.bigInt(c.Expr[BigInt](t).splice)})::
+       (typeOf[Short], (t: Tree) => reify{writerStack.splice.short(c.Expr[Short](t).splice)})::
+       (typeOf[BigDecimal], (t: Tree) => reify{writerStack.splice.bigDecimal(c.Expr[BigDecimal](t).splice)})::
+       (typeOf[Date], (t: Tree) => reify{writerStack.splice.string(defaultFormats.splice.dateFormat.format(c.Expr[Date](t).splice))})::
+       (typeOf[scala.Symbol], (t: Tree) => reify{writerStack.splice.string(c.Expr[scala.Symbol](t).splice.name)})::
+        Nil
 
     def listExpr(tpe: Type, path: Tree): Expr[Unit] = {
       val TypeRef(_, _:Symbol, pTpe::Nil) = tpe
@@ -87,7 +88,7 @@ object Serializer {
       //else if(tpe <:< typeOf[scala.collection.GenMap[Any, Any]].erasure) {
       val TypeRef(_, _, keyTpe::valTpe::Nil) = tpe
       if(!primitiveTypes.exists(_._1 =:= keyTpe)) {
-        c.abort(c.enclosingPosition, s"Maps nees to have keys of primative type! Type: $keyTpe")
+        c.abort(c.enclosingPosition, s"Maps needs to have keys of primitive type! Type: $keyTpe")
       }
 
       reify{
@@ -143,8 +144,6 @@ object Serializer {
     // Only basic types are lists maps or objects
     if (primitiveTypes.exists(_._1 =:= tpe || tpe =:= typeOf[Option[_]]))
       c.abort(c.enclosingPosition,  s"Json4s macros cannot serialize primitive type '$tpe'")
-
-    val Block(writerStackDef::Nil, _) = reify{ val writerStack = new WriterStack(writer.splice) }.tree
 
     val tree = if(tpe <:< typeOf[scala.collection.Seq[Any]]) {
       listExpr(tpe, obj.tree).tree
