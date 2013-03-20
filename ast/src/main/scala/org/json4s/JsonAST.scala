@@ -174,17 +174,20 @@ object JsonAST {
 
   private[json4s] def quote(s: String): String = quote(s, new StringWriter()).toString
   private[json4s] def quote(s: String, writer: java.io.Writer): java.io.Writer = {
-    s map {
-      case '"' ⇒ "\\\""
-      case '\\' ⇒ "\\\\"
-      case '\b' ⇒ "\\b"
-      case '\f' ⇒ "\\f"
-      case '\n' ⇒ "\\n"
-      case '\r' ⇒ "\\r"
-      case '\t' ⇒ "\\t"
-      case c if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100')) ⇒ "\\u%04x".format(c: Int)
-      case c ⇒ c.toString
-    } foreach writer.append
+    var i: Int = 0
+    while(i < s.length) {
+      val c = s.charAt(i)
+      if(c == '"') writer.append("\\\"")
+      else if(c == '\\') writer.append("\\\\")
+      else if(c == '\b') writer.append("\\b")
+      else if(c == '\f') writer.append("\\f")
+      else if(c == '\n') writer.append("\\n")
+      else if(c == '\r') writer.append("\\r")
+      else if(c == '\t') writer.append("\\t")
+      else if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100')) writer.append("\\u%04x".format(c: Int))
+      else writer.append(c)
+      i+=1
+    }
     writer
   }
 }
