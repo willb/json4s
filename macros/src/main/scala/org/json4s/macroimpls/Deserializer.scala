@@ -129,10 +129,10 @@ object Deserializer {
       else if (tpe.erasure <:< typeOf[Option[Any]]) {
         rparseOption(tpe, params)
       }
-      else if (tpe.erasure =:= typeOf[Map[_, _]]) {
+      else if (typeOf[Map[_, _]] <:< tpe.erasure) {
         rparseMap(tpe, params)
       }
-      else if (tpe.erasure =:= typeOf[List[Any]]) {
+      else if (typeOf[List[_]] <:< tpe.erasure) {
         rparseList(tpe, params)
       }
       else { // Must be a complex object

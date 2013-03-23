@@ -27,8 +27,8 @@ class WithNstedTpeParams[U,U2](val in1: U, val in2:WithTpeParams[U2]) {
   }
 }
 case class ResolvedParams[U](in3: U, in4:WithTpeParams[Int]) extends WithNstedTpeParams[U,Int](in3,in4)
-
 case class Bill(in:Int)
+case class WithSeq(in: Seq[Int])
 
 class Billy[U](in:U)
 case class BillyB(in:Int) extends Billy[Int](in)
@@ -45,45 +45,6 @@ class ClassWithDef(val in: Int=4) {
   override def equals(obj:Any) = obj match {
 	  case a:ClassWithDef => a.in == in
 	  case _ => false
-  }
-}
-
-class Stopwatch {
-
-  private var startTime = -1L
-  private var stopTime = -1L
-  private var running = false
-
-  def start(): Stopwatch = {
-    startTime = System.currentTimeMillis()
-    running = true
-    this
-  }
-
-  def stop(): Stopwatch = {
-    stopTime = System.currentTimeMillis()
-    running = false
-    this 
-  }
-
-  def isRunning(): Boolean = running
-
-  def getElapsedTime() = {
-    if (startTime == -1) {
-      0
-    }
-    if (running) {
-      System.currentTimeMillis() - startTime
-    }
-    else {
-      stopTime - startTime
-    }
-  }
-
-  def reset() {
-    startTime = -1
-    stopTime = -1
-    running = false
   }
 }
 
@@ -314,6 +275,12 @@ class MacroDeserializerSpec extends Specification {
       val expected = WithList("Bob", 1::4::Nil)
       val params: JValue = ("name" -> "Bob") ~ ("lst" -> (1::4::Nil))
       deserialize[WithList](params) must_== expected
+    }
+
+    "Parse WithSeq" in {
+      val expected = WithSeq(List(1,2,3))
+      val params: JValue = JObject(("in" -> JArray(expected.in.map(JInt(_)).toList))::Nil)
+      deserialize[WithSeq](params) must_== expected
     }
 
     "parse WithObjList" in {
