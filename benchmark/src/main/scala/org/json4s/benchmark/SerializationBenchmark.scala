@@ -61,8 +61,8 @@ class Json4sBenchmark extends SimpleScalaBenchmark {
   def timeJacksonSerialization(reps: Int) = repeat(reps) { mapper.writeValueAsString(project) }
 
   //Macro  TODO: -- THROWS EXCEPTION --
-  def timeMacroSerialization(reps: Int) = repeat(reps) {
-    val writer = JsonWriter.streamingPretty(new StringWriter())
+  def timeJsonMacroSerialization(reps: Int) = repeat(reps) {
+    val writer = JsonWriter.streaming(new StringWriter())
     Macros.serialize(project, writer)
     writer.result
   }
