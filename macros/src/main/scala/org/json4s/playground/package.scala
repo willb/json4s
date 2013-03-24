@@ -1,3 +1,5 @@
+package org.json4s
+
 package object playground {
 
   object by {

@@ -1,8 +1,6 @@
 package org.json4s
+package playground
 
-import playground._
-import org.json4s.ParserUtil.ParseException
-import util.control.Exception._
 
 object JsonValueProvider {
   def apply(data: JValue) = new JsonValueProvider(data)

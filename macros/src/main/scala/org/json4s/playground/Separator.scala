@@ -1,3 +1,4 @@
+package org.json4s
 package playground
 
 import annotation.tailrec
