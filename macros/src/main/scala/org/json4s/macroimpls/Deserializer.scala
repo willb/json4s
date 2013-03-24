@@ -2,8 +2,6 @@ package org.json4s.macroimpls
 
 import language.experimental.macros
 import scala.reflect.macros.Context
-import playground.Separator
-import util.control.Exception._
 import scala.Some
 
 
