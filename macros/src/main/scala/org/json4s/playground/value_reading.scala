@@ -1,4 +1,4 @@
-package playground
+package org.json4s.playground
 
 import util.control.Exception._
 
