@@ -1,6 +1,7 @@
 package org.json4s
 
 import language.experimental.macros
+import playground.JsonReader
 
 
 object Macros {
@@ -11,8 +12,8 @@ object Macros {
   def decompose[U](obj: U)(implicit defaultFormats: Formats) =
       macro macroimpls.Serializer.decompose[U]
   
-  def deserialize[U](params: JValue)(implicit defaultFormats: Formats) =
+  def deserialize[U](reader: JsonReader)(implicit defaultFormats: Formats) =
       macro macroimpls.Deserializer.deserialize_impl[U]
-  def deserializeEither[U](params: JValue)(implicit defaultFormats: Formats): Either[ParserUtil.ParseException,U] =
-      macro macroimpls.Deserializer.eitherDeserialize_impl[U]
+//  def deserializeEither[U](params: JValue)(implicit defaultFormats: Formats): Either[ParserUtil.ParseException,U] =
+//      macro macroimpls.Deserializer.eitherDeserialize_impl[U]
 }

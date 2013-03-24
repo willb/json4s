@@ -38,6 +38,12 @@ final class AstObjectReader(lst: List[JField]) extends JsonObjectReader {
     case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Long", this)
   }
 
+  def getFloat(key: String): Float = getField(key) match {
+    case JDouble(i) => i.asInstanceOf[Float]
+    case JDecimal(i)=> i.toFloat
+    case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Float", this)
+  }
+
   def getDouble(key: String): Double = getField(key) match {
     case JDouble(i) => i
     case JDecimal(i)=> i.toDouble
@@ -100,6 +106,12 @@ final class AstArrayIterator(private var current: List[JValue]) extends JsonArra
     case JDouble(i)  => i
     case JDecimal(i) => i.toDouble
     case _ => throw new InvalidStructure(s"Array doesn't have next field of type Double", this)
+  }
+
+  def nextFloat(): Float = next() match {
+    case JDouble(i)  => i.asInstanceOf[Float]
+    case JDecimal(i) => i.toFloat
+    case _ => throw new InvalidStructure(s"Array doesn't have next field of type Float", this)
   }
 
   def nextBigInt(): BigInt = next() match {

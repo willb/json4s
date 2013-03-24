@@ -1,4 +1,5 @@
 package org.json4s
+package playground
 
 import native.JsonMethods._
 import JsonDSL._

@@ -15,6 +15,7 @@ trait JsonObjectReader extends JsonReader {
   def getArrayReader(key: String): JsonArrayIterator
   def getInt(key: String): Int
   def getLong(key: String): Long
+  def getFloat(key: String): Float
   def getDouble(key: String): Double
   def getBigInt(key: String): BigInt
   def getBigDecimal(key: String): BigDecimal
@@ -28,6 +29,7 @@ trait JsonArrayIterator extends JsonReader {
   def nextArrayReader: JsonArrayIterator
   def nextInt: Int
   def nextLong: Long
+  def nextFloat: Float
   def nextDouble: Double
   def nextBigInt: BigInt
   def nextBigDecimal: BigDecimal
