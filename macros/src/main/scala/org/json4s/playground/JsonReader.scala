@@ -22,19 +22,6 @@ object JsonReader {
     case s: String => JsonString(s)
     case e => throw new InvalidStructure(s"Value $e is not primative type", null)
   }
-
-  // Bootstrap methods
-  def fromAst(jv: JValue): JsonReader = jv match {
-    case j: JObject => new AstObjectReader(j)
-    case a: JArray => new AstArrayReader(a)
-    case JDouble(d) => JsonDouble(d)
-    case JInt(i) => JsonBigInt(i)
-    case JBool(b) => JsonBool(b)
-    case JDecimal(d) => JsonBigDecimal(d)
-    case JNothing =>  new AstObjectReader(JObject())
-    case JNull =>  new AstObjectReader(JObject())
-    case JString(s) => new JsonString(s)
-  }
 }
 
 abstract class JsonComplexReader[KeyType] extends JsonReader {
@@ -131,20 +118,4 @@ case class JsonDouble(value: Double) extends JsonPrimative[Double]
 case class JsonFloat(value: Float) extends JsonPrimative[Float]
 case class JsonBigDecimal(value: BigDecimal) extends JsonPrimative[BigDecimal]
 case class JsonBool(value: Boolean) extends JsonPrimative[Boolean]
-
-class AstObjectReader(obj: JObject) extends JsonObjectReader with JsonComplexReaderImpl[String] {
-
-  def apply(key: String): JsonReader = {
-    JsonReader.fromAst(obj.obj.find{
-      case (k, v) => k == key
-    }.get._2)
-  }
-}
-
-class AstArrayReader(arr: JArray) extends JsonArrayReader with JsonComplexReaderImpl[Int] {
-  def apply(i: Int): JsonReader = JsonReader.fromAst(arr.apply(i))
-
-  def map[U](f: (JsonReader) => U) = arr.arr.map(v => f(JsonReader.fromAst(v)))
-}
-
 
