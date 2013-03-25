@@ -6,7 +6,7 @@ package playground
  * Created on 3/23/13 at 12:39 PM
  */
 
-class InvalidStructure(msg: String, value: JsonReader) extends java.lang.Exception(msg + value.getClass().toString)
+class InvalidStructure(msg: String, value: JsonReader) extends org.json4s.ParserUtil.ParseException(msg + value.getClass().toString, null)
 
 sealed trait JsonReader
 
