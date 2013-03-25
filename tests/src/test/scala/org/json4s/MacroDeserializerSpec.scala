@@ -208,107 +208,107 @@ class MacroDeserializerSpec extends Specification {
 //      val params: JObject = ("in" -> expected.in)
 //      deserialize[WithOption](astOR(params)) must_== expected
 //    }
-//
-//    "Generate a recursive Option" in {
-//      val expected = OptionOption(Some(Some(5)))
-//      val params: JObject = ("in" -> 5)
-//      val result = deserialize[OptionOption](astOR(params))
-//      result must_== expected
-//    }
-//
-//    "Handle type parameters" in {
-//      val expected = WithTpeParams(100)
-//      val params: JValue = ("in1" -> expected.in1)
-//      deserialize[WithTpeParams[Int]](astOR(params)) must_== expected
-//    }
-//
-//    "Handle a tuple" in {
-//      val expected = (2,3,"cats")
-//      val params: JValue = ("_1" -> expected._1) ~ ("_2" -> expected._2) ~ ("_3" -> expected._3)
-//      deserialize[(Int, Int, String)](astOR(params)) must_== expected
-//    }
-//
-//    "Handle nested type parameters, WithNstedTpeParams[U,U2](U, WithTpeParams[U2])" in {
-//      val expected = new WithNstedTpeParams("cat",WithTpeParams(100))
-//      val params: JValue = ("in1" -> expected.in1) ~ ("in2" -> ("in1" -> expected.in2.in1))
-//      deserialize[WithNstedTpeParams[String, Int]](astOR(params)) must_== expected
-//    }
-//
-//    "Handle partially resolved, ResolvedParams[U](in3: U, in4:WithTpeParams[Int])" in {
-//      val expected = new ResolvedParams("cat",WithTpeParams(100))
-//      val params = ("in3" -> expected.in3) ~ ("in4" -> ("in1" -> expected.in4.in1))
-//      deserialize[ResolvedParams[String]](astOR(params)) must_== expected
-//    }
-//
-//    "Curried case class" in {
-//      val expected = Curried(1,2)(3)
-//      val params = ("in1" -> expected.in1) ~ ("in2" -> expected.in2) ~ ("in3" -> 3)
-//      deserialize[Curried](astOR(params)) must_== expected
-//    }
-//
-//    "parse List[Int]" in {
-//        val expected = 1::2::3::4::Nil
-//      val params: JValue = expected
-//      val result = deserialize[List[Int]](astAR(params))
-//      result must_== expected
-//    }
-//
-//    "parse List[WithTpeParams[String]]" in {
-//        val expected = WithTpeParams("one")::WithTpeParams("two")::Nil
-//        val params: JValue = List( ("in1" -> "one"), ("in1" -> "two"))
-//      val result = deserialize[List[WithTpeParams[String]]](astAR(params))
-//      result must_== expected
-//    }
-//
-//    "parse empty List[Int]" in {
-//        val expected:List[Int] = Nil
-//        val params: JValue = expected
-//      val result = deserialize[List[Int]](astAR(params))
-//      result must_== expected
-//    }
-//
-//    "parse List[List[Int]]" in {
-//        val expected = (1::2::Nil)::(3::4::Nil)::Nil
-//        val params: JValue = expected
-//      val result = deserialize[List[List[Int]]](astAR(params))
-//
-//      result must_== expected
-//    }
-//
-//    "Parse WithList" in {
-//      val expected = WithList("Bob", 1::4::Nil)
-//      val params: JValue = ("name" -> "Bob") ~ ("lst" -> (1::4::Nil))
-//      deserialize[WithList](astOR(params)) must_== expected
-//    }
+
+    "Generate a recursive Option" in {
+      val expected = OptionOption(Some(Some(5)))
+      val params: JObject = ("in" -> 5)
+      val result = deserialize[OptionOption](astOR(params))
+      result must_== expected
+    }
+
+    "Handle type parameters" in {
+      val expected = WithTpeParams(100)
+      val params: JValue = ("in1" -> expected.in1)
+      deserialize[WithTpeParams[Int]](astOR(params)) must_== expected
+    }
+
+    "Handle a tuple" in {
+      val expected = (2,3,"cats")
+      val params: JValue = ("_1" -> expected._1) ~ ("_2" -> expected._2) ~ ("_3" -> expected._3)
+      deserialize[(Int, Int, String)](astOR(params)) must_== expected
+    }
+
+    "Handle nested type parameters, WithNstedTpeParams[U,U2](U, WithTpeParams[U2])" in {
+      val expected = new WithNstedTpeParams("cat",WithTpeParams(100))
+      val params: JValue = ("in1" -> expected.in1) ~ ("in2" -> ("in1" -> expected.in2.in1))
+      deserialize[WithNstedTpeParams[String, Int]](astOR(params)) must_== expected
+    }
+
+    "Handle partially resolved, ResolvedParams[U](in3: U, in4:WithTpeParams[Int])" in {
+      val expected = new ResolvedParams("cat",WithTpeParams(100))
+      val params = ("in3" -> expected.in3) ~ ("in4" -> ("in1" -> expected.in4.in1))
+      deserialize[ResolvedParams[String]](astOR(params)) must_== expected
+    }
+
+    "Curried case class" in {
+      val expected = Curried(1,2)(3)
+      val params = ("in1" -> expected.in1) ~ ("in2" -> expected.in2) ~ ("in3" -> 3)
+      deserialize[Curried](astOR(params)) must_== expected
+    }
+
+    "parse List[Int]" in {
+        val expected = 1::2::3::4::Nil
+      val params: JValue = expected
+      val result = deserialize[List[Int]](astAR(params))
+      result must_== expected
+    }
+
+    "parse List[WithTpeParams[String]]" in {
+        val expected = WithTpeParams("one")::WithTpeParams("two")::Nil
+        val params: JValue = List( ("in1" -> "one"), ("in1" -> "two"))
+      val result = deserialize[List[WithTpeParams[String]]](astAR(params))
+      result must_== expected
+    }
+
+    "parse empty List[Int]" in {
+        val expected:List[Int] = Nil
+        val params: JValue = expected
+      val result = deserialize[List[Int]](astAR(params))
+      result must_== expected
+    }
+
+    "parse List[List[Int]]" in {
+        val expected = (1::2::Nil)::(3::4::Nil)::Nil
+        val params: JValue = expected
+      val result = deserialize[List[List[Int]]](astAR(params))
+
+      result must_== expected
+    }
+
+    "Parse WithList" in {
+      val expected = WithList("Bob", 1::4::Nil)
+      val params: JValue = ("name" -> "Bob") ~ ("lst" -> (1::4::Nil))
+      deserialize[WithList](astOR(params)) must_== expected
+    }
 
     "Parse WithSeq" in {
       val expected = WithSeq(List(1,2,3))
       val params: JValue = JObject(("in" -> JArray(expected.in.map(JInt(_)).toList))::Nil)
       deserialize[WithSeq](astOR(params)) must_== expected
     }
-//
-//    "parse WithObjList" in {
-//        val expected = WithObjList("Bob",ThingWithJunk("Bobby",Junk(1,"one"))::ThingWithJunk("Bill",Junk(2,"two"))::Nil)
-//        val params: JValue = ("name" -> "Bob") ~ ("list" ->
-//            ((("name" -> "Bobby") ~ ("junk" -> (("in1" -> 1)~("in2" -> "one"))))
-//              ::(("name" -> "Bill") ~ ("junk" -> (("in1" -> 2)~("in2" -> "two"))))::Nil)
-//          )
-//        deserialize[WithObjList](params) must_== expected
-//      }
-//
-//    "parse List[Bill]" in {
-//    //case class ThingWithJunk(name:String, junk:Junk)
-//        val expected = Bill(1)::Bill(3)::Nil
-//        val params: JValue = List(("in" -> 1),("in" -> 3))
-//        deserialize[List[Bill]](params) must_== expected
-//      }
-//
-//    "parse BillyB which extends Billy[Int]" in {
-//      val expected = BillyB(3)
-//      val params: JValue = ("in" -> 3)
-//      deserialize[BillyB](params) must_== expected
-//    }
-//
+
+    "parse WithObjList" in {
+        val expected = WithObjList("Bob",ThingWithJunk("Bobby",Junk(1,"one"))::ThingWithJunk("Bill",Junk(2,"two"))::Nil)
+        val params: JValue = ("name" -> "Bob") ~ ("list" ->
+            ((("name" -> "Bobby") ~ ("junk" -> (("in1" -> 1)~("in2" -> "one"))))
+              ::(("name" -> "Bill") ~ ("junk" -> (("in1" -> 2)~("in2" -> "two"))))::Nil)
+          )
+        deserialize[WithObjList](astOR(params)) must_== expected
+      }
+
+    "parse List[Bill]" in {
+    //case class ThingWithJunk(name:String, junk:Junk)
+        val expected = Bill(1)::Bill(3)::Nil
+        val params: JValue = List(("in" -> 1),("in" -> 3))
+        deserialize[List[Bill]](astAR(params)) must_== expected
+      }
+
+    "parse BillyB which extends Billy[Int]" in {
+      val expected = BillyB(3)
+      val params: JValue = ("in" -> 3)
+      deserialize[BillyB](astOR(params)) must_== expected
+    }
+
 //    "Throw ParseException with a bad map value for 'in'" in {
 //      val params: JValue = ("in1" -> "2ffds") ~ ("in2" -> "cats")
 //      deserialize[Junk](params) must throwA[ParseException]
