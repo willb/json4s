@@ -101,26 +101,11 @@ object Deserializer {
 
     def buildList(tpe: Type, reader: c.Expr[JsonArrayIterator]): Tree = {
       val TypeRef(_, _, List(argTpe)) = tpe
-      val builderExpr = Apply(Select(New(AppliedTypeTree(Ident("collection.mutable.ListBuffer"), List(Ident(argTpe.toString)))), nme.CONSTRUCTOR), List())
 
+      val builderTree = TypeApply(Select(
+        Ident("List"), newTermName("newBuilder")), List(TypeTree(argTpe)))
 
-//        reify{ // Cant seem to get this to work.
-//          val builder = c.Expr[scala.collection.mutable.ListBuffer[Any]](builderExpr).splice
-//          while(reader.splice.hasNext){
-//              builder.append(c.Expr[Any](buildCell(argTpe, reader)).splice)
-//          }
-//          builder.result()
-//        }.tree
-
-      val listNme = c.fresh("lst")
-      val listTree = ValDef(
-                        Modifiers(MUTABLE),
-                        listNme,
-                        typeArgumentTree(tpe),
-                        reify(Nil).tree
-            )
-
-      val itNme = c.fresh("jsonIterator")
+      val itNme = c.fresh("jsonIterator$")
       val itExpr = c.Expr[JsonArrayIterator](Ident(itNme))
       val itTree = ValDef(
         Modifiers(),
@@ -130,18 +115,12 @@ object Deserializer {
       )
 
         reify{
+          val builder = c.Expr[scala.collection.mutable.Builder[Any, List[Any]]](builderTree).splice
           c.Expr(itTree).splice
-          c.Expr(listTree).splice
           while(itExpr.splice.hasNext) {
-
-          // Manual tree manipulation is fastest, but more subject to scala churn
-            c.Expr(Assign(Ident(listNme),Apply(Select(Ident(listNme),
-                newTermName("$colon$colon")),
-                List(buildCell(argTpe, itExpr))))
-            ).splice
-
+            builder += c.Expr[Any](buildCell(argTpe, itExpr)).splice
           }
-          c.Expr[List[_]](Ident(listNme)).splice.reverse
+          builder.result
        }.tree
     } // rparseList
 
@@ -151,6 +130,17 @@ object Deserializer {
       else if (pTpe =:= typeOf[Float])         reify { reader.splice.nextFloat }.tree
       else if (pTpe =:= typeOf[Double])         reify { reader.splice.nextDouble }.tree
       else if (pTpe =:= typeOf[String])         reify { reader.splice.nextString }.tree
+      // TODO: Does it make sense to have options in arrays?
+//      else if (pTpe.erasure <:< typeOf[Option[_]]) {
+//        val TypeRef(_, _, List(argTpe)) = pTpe
+//        reify{
+//          try{
+//            Some(c.Expr(buildCell(argTpe, reader)).splice)
+//          } catch {
+//            case _: Throwable => None
+//          }
+//        }.tree
+//      }
       else if (typeOf[List[_]] <:< pTpe.erasure) buildList(pTpe, reify{reader.splice.nextArrayReader})
       else buildObject(pTpe, reify{reader.splice.nextObjectReader})
 
@@ -174,16 +164,23 @@ object Deserializer {
       else if (typeOf[List[_]] <:< pTpe.erasure) {
         buildList(pTpe, reify{params.splice.getArrayReader(fieldName.splice)})
       }
-      else { // Must be complex
-        buildObject(pTpe, reify{ params.splice.getObjectReader(fieldName.splice)})
-      }
+      else  buildObject(pTpe, reify{ params.splice.getObjectReader(fieldName.splice)})
     }
 
     // The really heavyweight function. Most of the magic happens in the last else statement
     def buildObject(tpe: Type, params: c.Expr[JsonObjectReader]): Tree = {
-
+      // TODO: need to build a new JsonObjectReader
       val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = tpe
       val ctorParams = tpe.member(nme.CONSTRUCTOR).asMethod.paramss
+
+      val orNme = c.fresh("jsonReader$")
+      val orExpr = c.Expr[JsonObjectReader](Ident(orNme))
+      val orTree = ValDef(
+        Modifiers(),
+        newTermName(orNme),
+        TypeTree(typeOf[JsonObjectReader]),
+        params.tree
+      )
 
       val newObjTerm = newTermName(c.fresh("newObj$"))
       val newObjTypeTree = typeArgumentTree(tpe)
@@ -199,7 +196,7 @@ object Deserializer {
           if (pSym.asTerm.isParamWithDefault) {
             reify {
               try {
-                c.Expr(buildField(pTpe, fieldName, params)).splice // splice in another obj tree
+                c.Expr(buildField(pTpe, fieldName, orExpr)).splice // splice in another obj tree
               } catch {
                 case _: Throwable =>
                   // Need to use the origional symbol.companionObj to get defaults
@@ -209,7 +206,7 @@ object Deserializer {
                   ).splice
               }
             }.tree
-          } else buildField(pTpe, fieldName, params)
+          } else buildField(pTpe, fieldName, orExpr)
         })) // Using the New(Tree, List(List(Tree))) constructor
       ) // newObjTree ValDef
         
@@ -231,7 +228,7 @@ object Deserializer {
       }
         
         //Block(newObjTree::setParamsBlocks, Ident(newObjTerm))
-      Block(newObjTree::setParamsBlocks, Ident(newObjTerm))
+      Block(orTree::newObjTree::setParamsBlocks, Ident(newObjTerm))
       //}
     }
     
@@ -262,7 +259,7 @@ object Deserializer {
         }
       }
     }
-    println(expr)  // Debug
+    //println(expr)  // Debug
     expr
   }
 }
