@@ -102,8 +102,8 @@ object Deserializer {
     def buildList(tpe: Type, reader: c.Expr[JsonArrayIterator]): Tree = {
       val TypeRef(_, _, List(argTpe)) = tpe
 
-      val builderTree = TypeApply(Select(
-        Ident("List"), newTermName("newBuilder")), List(TypeTree(argTpe)))
+      val builderExpr = c.Expr[collection.mutable.Builder[Any, List[Any]]](TypeApply(Select(
+        Ident("List"), newTermName("newBuilder")), List(TypeTree(argTpe))))
 
       val itNme = c.fresh("jsonIterator$")
       val itExpr = c.Expr[JsonArrayIterator](Ident(itNme))
@@ -114,16 +114,17 @@ object Deserializer {
         reader.tree
       )
 
-        reify{
-          val builder = c.Expr[scala.collection.mutable.Builder[Any, List[Any]]](builderTree).splice
-          c.Expr(itTree).splice
-          while(itExpr.splice.hasNext) {
-            builder += c.Expr[Any](buildCell(argTpe, itExpr)).splice
-          }
-          builder.result
+      reify{
+        val builder = builderExpr.splice
+        c.Expr(itTree).splice
+        while(itExpr.splice.hasNext) {
+          builder += c.Expr[Any](buildCell(argTpe, itExpr)).splice
+        }
+        builder.result
        }.tree
-    } // rparseList
+    }
 
+    // Helps build the cells of a list
     def buildCell(pTpe: Type, reader: c.Expr[JsonArrayIterator]): Tree = {
       if      (pTpe =:= typeOf[Int])         reify { reader.splice.nextInt }.tree
       else if (pTpe =:= typeOf[Long])         reify { reader.splice.nextLong }.tree
@@ -146,6 +147,7 @@ object Deserializer {
 
     }
 
+    // Helps build the different fields of an Object or Map
     def buildField(pTpe: Type, fieldName: c.Expr[String], params: c.Expr[JsonObjectReader]): Tree = {
       if      (pTpe =:= typeOf[Int])         { rparseInt(fieldName, params).tree }
       else if (pTpe =:= typeOf[Long])         { rparseLong(fieldName, params).tree  }
@@ -158,9 +160,9 @@ object Deserializer {
       else if (pTpe.erasure <:< typeOf[Option[_]]) {
         rparseOption(pTpe, fieldName, params)
       }
-      //      else if (typeOf[Map[_, _]] <:< tpe.erasure) {
-      //        rparseMap(tpe, params)
-      //      }
+            else if (typeOf[Map[_, _]] <:< pTpe.erasure) {
+              buildMap(pTpe, params)
+            }
       else if (typeOf[List[_]] <:< pTpe.erasure) {
         buildList(pTpe, reify{params.splice.getArrayReader(fieldName.splice)})
       }
@@ -226,8 +228,7 @@ object Deserializer {
           }
         }.tree
       }
-        
-        //Block(newObjTree::setParamsBlocks, Ident(newObjTerm))
+
       Block(orTree::newObjTree::setParamsBlocks, Ident(newObjTerm))
       //}
     }

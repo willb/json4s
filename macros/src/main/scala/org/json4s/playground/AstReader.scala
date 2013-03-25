@@ -8,6 +8,14 @@ import annotation.tailrec
  * Created on 3/23/13 at 8:31 PM
  */
 
+object AstReader {
+  def apply(jv: JValue): JsonReader = jv match {
+    case JObject(lst) => new AstObjectReader(lst)
+    case JArray(lst) => new AstArrayIterator(lst)
+    case e => throw new InvalidStructure(s"JValue '$e' is not of type JObject or JArray", null)
+  }
+}
+
 final class AstObjectReader(lst: List[JField]) extends JsonObjectReader {
   private def getField(name: String) = {
     @tailrec def inner(lst: List[JField]): JValue = lst match {
