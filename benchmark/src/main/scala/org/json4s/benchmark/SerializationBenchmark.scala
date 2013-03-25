@@ -88,7 +88,7 @@ class Json4sBenchmark extends SimpleScalaBenchmark {
 
   // Macro
   def timeJson4sMacroDeserialization(reps: Int) = repeat(reps) {
-    Macros.deserialize[Project](projectJValue)
+    Macros.deserialize[Project](playground.AstReader(projectJValue))
   }
 
   def timeJson4sNativeParsing(reps: Int) = repeat(reps) { native.JsonMethods.parse(glossaryJson) }
