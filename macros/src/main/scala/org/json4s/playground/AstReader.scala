@@ -18,6 +18,14 @@ final class AstObjectReader(lst: List[JField]) extends JsonObjectReader {
     inner(lst)
   }
 
+  override def getKeys = {
+    def buildKeys(fields: List[JField]): List[String] = fields match {
+      case Nil => Nil
+      case field => field.head._1::buildKeys(field.tail)
+    }
+    buildKeys(lst)
+  }
+
   override def getObjectReader(key: String): JsonObjectReader = getField(key) match {
     case JObject(fields) => new AstObjectReader(fields)
     case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Object", this)

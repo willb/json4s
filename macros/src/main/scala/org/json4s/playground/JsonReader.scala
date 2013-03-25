@@ -11,6 +11,8 @@ class InvalidStructure(msg: String, value: JsonReader) extends java.lang.Excepti
 sealed trait JsonReader
 
 trait JsonObjectReader extends JsonReader {
+  def getKeys: Seq[String]
+
   def getObjectReader(key: String): JsonObjectReader = optObjectReader(key).get
   def getArrayReader(key: String): JsonArrayIterator = optArrayReader(key).get
   def getInt(key: String): Int                       = optInt(key).get
