@@ -14,12 +14,6 @@ object Deserializer {
   import java.util.Date
   import org.json4s.Formats
 
-//  def eitherDeserialize_impl[U: c.WeakTypeTag](c: Context)(params: c.Expr[JValue])
-//         (defaultFormats: c.Expr[Formats]): c.Expr[Either[ParserUtil.ParseException,U]] =  c.universe.reify {
-//    try { Right(deserialize_impl(c)(params)(defaultFormats).splice) }
-//    catch { case e: ParserUtil.ParseException => Left(e) }
-//  }
-
   // The meat and potatoes of the implementation.
   def deserialize[U](reader: JsonReader)(implicit defaultFormats: Formats) = macro deserialize_impl[U]
   def deserialize_impl[U: c.WeakTypeTag](c: Context)(reader: c.Expr[JsonReader])
@@ -71,33 +65,25 @@ object Deserializer {
       }.tree
     }
 
-        def buildMap(tpe:Type, params: c.Expr[JsonObjectReader]): c.Tree   = {
-    //      val TypeRef(_, _, keyTpe::valTpe::Nil) = tpe
-    //      // Capable of parsing maps that contain primatives as keys, not only strings
-    //      val kExpr = c.Expr[String](Ident("k"))
-    //      val keyParser = keyTpe match {
-    //        case a if a =:= typeOf[Int] => reify{getInt(JInt(kExpr.splice.toInt))}
-    //        case a if a =:= typeOf[Long] => reify{getLong(JInt(kExpr.splice.toLong))}
-    //        case a if a =:= typeOf[Float] => reify{getFloat(JDouble(kExpr.splice.toDouble))}
-    //        case a if a =:= typeOf[Double] => reify{getDouble(JDouble(kExpr.splice.toDouble))}
-    //        case a if a =:= typeOf[String] => reify{getString(JString(kExpr.splice))}
-    //        case _ => c.abort(c.enclosingPosition, "Map must contain primative types as keys!")
-    //      }
-    //
-    //      reify {
-    //        params.splice match {
-    //          case JObject(objs) =>
-    //            objs.map { case (k, v) => (
-    //              keyParser.splice,
-    //              c.Expr(buildObject(valTpe, c.Expr[JValue](Ident("v")))).splice
-    //            )
-    //            }.toMap
-    //
-    //          case o => throw new JsonStructureException(JObject.getClass(), o.getClass())
-    //        }
-    //      }.tree
-          ???
-        }
+    def buildMap(tpe:Type, params: c.Expr[JsonObjectReader]): c.Tree   = {
+      val TypeRef(_, _, keyTpe::valTpe::Nil) = tpe
+      // Capable of parsing maps that contain primatives as keys, not only strings
+      val kExpr = c.Expr[String](Ident("k"))
+      val keyParser = keyTpe match {
+        case a if a =:= typeOf[Int] => reify{kExpr.splice.toInt}
+        case a if a =:= typeOf[Long] => reify{kExpr.splice.toLong}
+        case a if a =:= typeOf[Float] => reify{kExpr.splice.toDouble}
+        case a if a =:= typeOf[Double] => reify{kExpr.splice.toDouble}
+        case a if a =:= typeOf[String] => reify{kExpr.splice}
+        case _ => c.abort(c.enclosingPosition, "Map must contain primative types as keys!")
+      }
+
+      reify {
+        params.splice.getKeys.map{ k =>
+          (keyParser.splice, c.Expr(buildField(valTpe, kExpr, params)).splice)
+        }.toMap
+      }.tree
+    }
 
     def buildList(tpe: Type, reader: c.Expr[JsonArrayIterator]): Tree = {
       val TypeRef(_, _, List(argTpe)) = tpe
@@ -143,6 +129,17 @@ object Deserializer {
 //        }.tree
 //      }
       else if (typeOf[List[_]] <:< pTpe.erasure) buildList(pTpe, reify{reader.splice.nextArrayReader})
+      else if (typeOf[Map[_, _]] <:< pTpe.erasure) {
+        val orNme = c.fresh("jsonReader$")
+        val orExpr = c.Expr[JsonObjectReader](Ident(orNme))
+        val orTree = ValDef(
+          Modifiers(),
+          newTermName(orNme),
+          TypeTree(typeOf[JsonObjectReader]),
+          reify{reader.splice.nextObjectReader}.tree
+        )
+        Block(orTree, buildMap(pTpe, orExpr))
+      }
       else buildObject(pTpe, reify{reader.splice.nextObjectReader})
 
     }
@@ -160,9 +157,17 @@ object Deserializer {
       else if (pTpe.erasure <:< typeOf[Option[_]]) {
         rparseOption(pTpe, fieldName, params)
       }
-            else if (typeOf[Map[_, _]] <:< pTpe.erasure) {
-              buildMap(pTpe, params)
-            }
+      else if (typeOf[Map[_, _]] <:< pTpe.erasure) {
+        val orNme = c.fresh("jsonReader$")
+        val orExpr = c.Expr[JsonObjectReader](Ident(orNme))
+        val orTree = ValDef(
+          Modifiers(),
+          newTermName(orNme),
+          TypeTree(typeOf[JsonObjectReader]),
+          params.tree
+        )
+        Block(orTree, buildMap(pTpe, orExpr))
+      }
       else if (typeOf[List[_]] <:< pTpe.erasure) {
         buildList(pTpe, reify{params.splice.getArrayReader(fieldName.splice)})
       }
@@ -223,7 +228,6 @@ object Deserializer {
           buildField(pTpe, compName, params)
           )).splice
           } catch { // Don't care if they fail
-            case _: JsonStructureException =>
             case _: InvalidStructure =>
           }
         }.tree

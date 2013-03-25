@@ -28,24 +28,4 @@ class MacroHelpers[C <: Context](val c1: C) {
       sym <- getVars(tpe) if !ctorParams.exists(sym.name.toTermName.toString.trim == _)
     } yield sym
   }
-
-
-  // For extracting a JValue from a JObject
-  def getObjectField(name: c1.Expr[String], params: c1.Expr[JValue]):(TermName, c1.Expr[JValue], Tree) = {
-    import PrimativeHelpers.getFieldByName
-
-    val freshNme = newTermName(c1.fresh("freshJValue$"))
-    val freshObj = c1.Expr[JValue](Ident(freshNme))
-
-    val objFieldTree = ValDef( // Need to use a fresh name to avoid stuff like 'val nme = nme'
-      Modifiers(),
-      freshNme,
-      TypeTree(typeOf[JValue]),
-      reify(
-        getFieldByName(params.splice, name.splice)
-          .getOrElse(JNothing)
-      ).tree
-    )
-    (freshNme, freshObj, objFieldTree)
-  }
 }
