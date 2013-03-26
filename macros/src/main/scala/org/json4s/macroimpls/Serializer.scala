@@ -85,9 +85,8 @@ object Serializer {
     }
 
     def mapExpr(tpe: Type, path: Tree): Expr[Unit] = {
-      //else if(tpe <:< typeOf[scala.collection.GenMap[Any, Any]].erasure) {
       val TypeRef(_, _, keyTpe::valTpe::Nil) = tpe
-      if(!primitiveTypes.exists(_._1 =:= keyTpe)) {
+      if(!helpers.isPrimitive(keyTpe)) {
         c.abort(c.enclosingPosition, s"Maps needs to have keys of primitive type! Type: $keyTpe")
       }
 
@@ -142,7 +141,7 @@ object Serializer {
     val tpe = weakTypeOf[U]
 
     // Only basic types are lists maps or objects
-    if (primitiveTypes.exists(_._1 =:= tpe || tpe =:= typeOf[Option[_]]))
+    if (helpers.isPrimitive(tpe) || tpe =:= typeOf[Option[_]])
       c.abort(c.enclosingPosition,  s"Json4s macros cannot serialize primitive type '$tpe'")
 
     val tree = if(tpe <:< typeOf[scala.collection.Seq[Any]]) {
@@ -155,5 +154,4 @@ object Serializer {
     //println(s"------------------ Debug: Generated Code ------------------\n $code")
     c.Expr[Unit](code)
   }
-  
 }
