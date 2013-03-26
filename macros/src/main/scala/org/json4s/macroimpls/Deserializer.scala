@@ -20,52 +20,34 @@ object Deserializer {
           (defaultFormats: c.Expr[Formats]): c.Expr[U] = {
 
     import c.universe._
-    import Flag._
-    import org.json4s.ParserUtil.ParseException
 
     val helpers = new MacroHelpers[c.type](c)
     import helpers._
 
-    def rparseDate(field: c.Expr[String], params: c.Expr[JsonObjectReader])  = reify {
-      defaultFormats.splice.dateFormat.parse(rparseString(field, params).splice).get
+    def rparseDate(field: c.Expr[String], reader: c.Expr[JsonObjectReader])  = reify {
+      defaultFormats.splice.dateFormat.parse(rparseString(field, reader).splice).get
     }
 
-    def rparseInt(field: c.Expr[String], params: c.Expr[JsonObjectReader])    = reify {
-      params.splice.getInt(field.splice)
+    def rparseString(field: c.Expr[String], reader: c.Expr[JsonObjectReader]) = reify {
+      reader.splice.getString(field.splice)
     }
 
-    def rparseLong(field: c.Expr[String], params:c.Expr[JsonObjectReader])   = reify {
-      params.splice.getLong(field.splice)
+    def rparseSymbol(field: c.Expr[String], reader: c.Expr[JsonObjectReader]) = reify {
+      Symbol(rparseString(field, reader).splice)
     }
 
-    def rparseFloat(field: c.Expr[String], params: c.Expr[JsonObjectReader])  = reify {
-      params.splice.getFloat(field.splice)
-    }
-
-    def rparseDouble(field: c.Expr[String], params: c.Expr[JsonObjectReader]) = reify {
-      params.splice.getDouble(field.splice)
-    }
-
-    def rparseString(field: c.Expr[String], params: c.Expr[JsonObjectReader]) = reify {
-      params.splice.getString(field.splice)
-    }
-
-    def rparseSymbol(field: c.Expr[String], params: c.Expr[JsonObjectReader]) = reify {
-      Symbol(rparseString(field, params).splice)
-    }
-
-    def rparseOption(tpe:Type, field: c.Expr[String], params: c.Expr[JsonObjectReader]):Tree = {
+    def rparseOption(tpe:Type, field: c.Expr[String], reader: c.Expr[JsonObjectReader]):Tree = {
       val TypeRef(_, _, List(argTpe)) = tpe
       reify{
         try{
-          Some(c.Expr(buildField(argTpe, field, params)).splice)
+          Some(c.Expr(buildField(argTpe, field, reader)).splice)
         } catch {
           case _: Throwable => None
         }
       }.tree
     }
 
-    def buildMap(tpe:Type, params: c.Expr[JsonObjectReader]): c.Tree   = {
+    def buildMap(tpe:Type, reader: c.Expr[JsonObjectReader]): c.Tree   = {
       val TypeRef(_, _, keyTpe::valTpe::Nil) = tpe
       // Capable of parsing maps that contain primatives as keys, not only strings
       val kExpr = c.Expr[String](Ident("k"))
@@ -79,8 +61,8 @@ object Deserializer {
       }
 
       reify {
-        params.splice.getKeys.map{ k =>
-          (keyParser.splice, c.Expr(buildField(valTpe, kExpr, params)).splice)
+        reader.splice.getKeys.map{ k =>
+          (keyParser.splice, c.Expr(buildField(valTpe, kExpr, reader)).splice)
         }.toMap
       }.tree
     }
@@ -111,15 +93,15 @@ object Deserializer {
     }
 
     // Helps build the cells of a list
-    def buildCell(pTpe: Type, reader: c.Expr[JsonArrayIterator]): Tree = {
-      if      (pTpe =:= typeOf[Int])         reify { reader.splice.nextInt }.tree
-      else if (pTpe =:= typeOf[Long])         reify { reader.splice.nextLong }.tree
-      else if (pTpe =:= typeOf[Float])         reify { reader.splice.nextFloat }.tree
-      else if (pTpe =:= typeOf[Double])         reify { reader.splice.nextDouble }.tree
-      else if (pTpe =:= typeOf[String])         reify { reader.splice.nextString }.tree
+    def buildCell(tpe: Type, reader: c.Expr[JsonArrayIterator]): Tree = {
+      if      (tpe =:= typeOf[Int])         reify { reader.splice.nextInt }.tree
+      else if (tpe =:= typeOf[Long])         reify { reader.splice.nextLong }.tree
+      else if (tpe =:= typeOf[Float])         reify { reader.splice.nextFloat }.tree
+      else if (tpe =:= typeOf[Double])         reify { reader.splice.nextDouble }.tree
+      else if (tpe =:= typeOf[String])         reify { reader.splice.nextString }.tree
       // TODO: Does it make sense to have options in arrays?
-//      else if (pTpe.erasure <:< typeOf[Option[_]]) {
-//        val TypeRef(_, _, List(argTpe)) = pTpe
+//      else if (tpe.erasure <:< typeOf[Option[_]]) {
+//        val TypeRef(_, _, List(argTpe)) = tpe
 //        reify{
 //          try{
 //            Some(c.Expr(buildCell(argTpe, reader)).splice)
@@ -128,8 +110,8 @@ object Deserializer {
 //          }
 //        }.tree
 //      }
-      else if (typeOf[List[_]] <:< pTpe.erasure) buildList(pTpe, reify{reader.splice.nextArrayReader})
-      else if (typeOf[Map[_, _]] <:< pTpe.erasure) {
+      else if (typeOf[List[_]] <:< tpe.erasure) buildList(tpe, reify{reader.splice.nextArrayReader})
+      else if (typeOf[Map[_, _]] <:< tpe.erasure) {
         val orNme = c.fresh("jsonReader$")
         val orExpr = c.Expr[JsonObjectReader](Ident(orNme))
         val orTree = ValDef(
@@ -138,44 +120,64 @@ object Deserializer {
           TypeTree(typeOf[JsonObjectReader]),
           reify{reader.splice.nextObjectReader}.tree
         )
-        Block(orTree, buildMap(pTpe, orExpr))
+        Block(orTree, buildMap(tpe, orExpr))
       }
-      else buildObject(pTpe, reify{reader.splice.nextObjectReader})
+      else buildObject(tpe, reify{reader.splice.nextObjectReader})
 
     }
 
     // Helps build the different fields of an Object or Map
-    def buildField(pTpe: Type, fieldName: c.Expr[String], params: c.Expr[JsonObjectReader]): Tree = {
-      if      (pTpe =:= typeOf[Int])         { rparseInt(fieldName, params).tree }
-      else if (pTpe =:= typeOf[Long])         { rparseLong(fieldName, params).tree  }
-      else if (pTpe =:= typeOf[Float])        { rparseFloat(fieldName, params).tree  }
-      else if (pTpe =:= typeOf[Double])       { rparseDouble(fieldName, params).tree }
-      else if (pTpe =:= typeOf[String])      { rparseString(fieldName, params).tree }
-      else if (pTpe =:= typeOf[Date])         { rparseDate(fieldName, params).tree   }
-      else if (pTpe =:= typeOf[scala.Symbol]) { rparseSymbol(fieldName, params).tree }
+    def buildField(tpe: Type, fieldName: c.Expr[String], reader: c.Expr[JsonObjectReader]): Tree = {
+      if (helpers.isPrimitive(tpe)) buildPrimative(tpe, fieldName, reader)
       // The privileged types
-      else if (pTpe.erasure <:< typeOf[Option[_]]) {
-        rparseOption(pTpe, fieldName, params)
+      else if (tpe.erasure <:< typeOf[Option[_]]) {
+        rparseOption(tpe, fieldName, reader)
       }
-      else if (typeOf[Map[_, _]] <:< pTpe.erasure) {
+      else if (typeOf[Map[_, _]] <:< tpe.erasure) {
         val orNme = c.fresh("jsonReader$")
         val orExpr = c.Expr[JsonObjectReader](Ident(orNme))
         val orTree = ValDef(
           Modifiers(),
           newTermName(orNme),
           TypeTree(typeOf[JsonObjectReader]),
-          params.tree
+          reader.tree
         )
-        Block(orTree, buildMap(pTpe, orExpr))
+        Block(orTree, buildMap(tpe, orExpr))
       }
-      else if (typeOf[List[_]] <:< pTpe.erasure) {
-        buildList(pTpe, reify{params.splice.getArrayReader(fieldName.splice)})
+      else if (typeOf[List[_]] <:< tpe.erasure) {
+        buildList(tpe, reify{reader.splice.getArrayReader(fieldName.splice)})
       }
-      else  buildObject(pTpe, reify{ params.splice.getObjectReader(fieldName.splice)})
+      else  buildObject(tpe, reify{ reader.splice.getObjectReader(fieldName.splice)})
+    }
+
+    def buildPrimative(tpe: Type, field: c.Expr[String], reader: c.Expr[JsonObjectReader]) = {
+      if      (tpe =:= typeOf[Int])         reify {reader.splice.getInt(field.splice)    }.tree
+      else if (tpe =:= typeOf[Long])        reify { reader.splice.getLong(field.splice)  }.tree
+      else if (tpe =:= typeOf[Float])       reify { reader.splice.getFloat(field.splice) }.tree
+      else if (tpe =:= typeOf[Double])      reify { reader.splice.getDouble(field.splice)}.tree
+      else if (tpe =:= typeOf[String])      { rparseString(field, reader).tree }
+      else if (tpe =:= typeOf[Date])         { rparseDate(field, reader).tree   }
+      else if (tpe =:= typeOf[scala.Symbol]) { rparseSymbol(field, reader).tree }
+      else throw new java.lang.NoSuchFieldException(s"Type '$tpe' is not a primative!")
+    }
+
+    def buildPrimativeOpt(tpe: Type, field: c.Expr[String], reader: c.Expr[JsonObjectReader]): c.Expr[Option[_]] = {
+      if      (tpe =:= typeOf[Int])         reify {reader.splice.optInt(field.splice)     }
+      else if (tpe =:= typeOf[Long])        reify { reader.splice.optLong(field.splice)   }
+      else if (tpe =:= typeOf[Float])       reify { reader.splice.optFloat(field.splice)  }
+      else if (tpe =:= typeOf[Double])      reify { reader.splice.optDouble(field.splice) }
+      else if (tpe =:= typeOf[String])      reify { reader.splice.optString(field.splice) }
+      else if (tpe =:= typeOf[Date])         reify {
+        reader.splice.optString(field.splice).flatMap(defaultFormats.splice.dateFormat.parse(_))
+      }
+      else if (tpe =:= typeOf[scala.Symbol]) reify {
+        reader.splice.optString(field.splice).map(Symbol(_))
+      }
+      else throw new java.lang.NoSuchFieldException(s"Type '$tpe' is not a primative!")
     }
 
     // The really heavyweight function. Most of the magic happens in the last else statement
-    def buildObject(tpe: Type, params: c.Expr[JsonObjectReader]): Tree = {
+    def buildObject(tpe: Type, reader: c.Expr[JsonObjectReader]): Tree = {
       // TODO: need to build a new JsonObjectReader
       val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = tpe
       val ctorParams = tpe.member(nme.CONSTRUCTOR).asMethod.paramss
@@ -186,7 +188,7 @@ object Deserializer {
         Modifiers(),
         newTermName(orNme),
         TypeTree(typeOf[JsonObjectReader]),
-        params.tree
+        reader.tree
       )
 
       val newObjTerm = newTermName(c.fresh("newObj$"))
@@ -200,7 +202,14 @@ object Deserializer {
 
           // If param has defaults, try to find the val in map, or call
           // default evaluation from its companion object
-          if (pSym.asTerm.isParamWithDefault) {
+          if (pSym.asTerm.isParamWithDefault && helpers.isPrimitive(pTpe)) {
+            reify {
+              buildPrimativeOpt(pTpe, fieldName, orExpr).splice
+              .getOrElse(c.Expr(Select(Ident(sym.companionSymbol), newTermName(
+                "$lessinit$greater$default$" + (index+1).toString))
+              ).splice)
+            }.tree
+          } else if (pSym.asTerm.isParamWithDefault) {
             reify {
               try {
                 c.Expr(buildField(pTpe, fieldName, orExpr)).splice // splice in another obj tree
@@ -225,7 +234,7 @@ object Deserializer {
         reify{
           try {
           c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)),
-          buildField(pTpe, compName, params)
+          buildField(pTpe, compName, reader)
           )).splice
           } catch { // Don't care if they fail
             case _: InvalidStructure =>
@@ -234,10 +243,11 @@ object Deserializer {
       }
 
       Block(orTree::newObjTree::setParamsBlocks, Ident(newObjTerm))
-      //}
     }
     
     val tpe = weakTypeOf[U]
+
+    // The three fundamental types that can be deserialized
     val expr = if (typeOf[Map[_, _]] <:< tpe.erasure) {
       val i = c.Expr[U](buildMap(tpe, c.Expr[JsonObjectReader](Ident("r"))))
       reify {
