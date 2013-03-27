@@ -69,6 +69,12 @@ class Json4sBenchmark extends SimpleScalaBenchmark {
 
   def timeJacksonDeserialization(reps: Int) = repeat(reps) { mapper.readValue(projectJson, classOf[Project]) }
 
+  // The interface needs some cleaning up
+  def timeJson4sMacroDeserialization(reps: Int) = repeat(reps) {
+    val reader = new org.json4s.playground.TextObjectReader(projectJson.substring(1, projectJson.length-1))
+    Macros.deserialize[Project](reader)
+  }
+
   def timeJacksonParsing(reps: Int) = repeat(reps) { mapper.readValue(glossaryJson, classOf[JsonNode]) }
 
   def timeJson4sDecomposition(reps: Int) = repeat(reps) { Extraction.decompose(project) }
@@ -87,7 +93,7 @@ class Json4sBenchmark extends SimpleScalaBenchmark {
   def timeJson4sNativeDeserialization(reps: Int) = repeat(reps) { native.Serialization.read[Project](projectJson) }
 
   // Macro
-  def timeJson4sMacroDeserialization(reps: Int) = repeat(reps) {
+  def timeJson4sMacroJValueDeserialization(reps: Int) = repeat(reps) {
     Macros.deserialize[Project](playground.AstReader(projectJValue))
   }
 
