@@ -12,7 +12,7 @@ class TextReaderSpec extends Specification {
   val json =
     """{ "cats": 34, "dogs": { "cats": true, "fish": [1, "cats", [1, 2, 3]] } }"""
 
-  val textReader = new TextReader {}
+  val textReader = TextReaderHelpers
 
   "TextReader" should {
     "Find next object" in {
@@ -76,13 +76,34 @@ class TextReaderSpec extends Specification {
       Macros.deserialize[Animals](reader) must_== Animals(34, "Hello World!")
     }
 
+    "Parse simple array" in {
+      val json =
+        """1, 2, 3"""
+      val reader = new TextArrayIterator(json)
+      Macros.deserialize[List[Int]](reader) must_== 1::2::3::Nil
+    }
+
     "Parse compound object" in {
       val json =
         """"count": 1, "one" : { "cats": 34, "dogs": "Hello World!" }"""
       val reader = new TextObjectReader(json)
       Macros.deserialize[AnimalFarm](reader) must_== AnimalFarm(1, Animals(34, "Hello World!"))
-
     }
 
+    "Parse object with array" in {
+      case class WithArray(in: Double, lst: List[String])
+      val json =
+        """"in": 1.2431, "lst": [ "one", "two" , "three" ]"""
+      val reader = new TextObjectReader(json)
+      Macros.deserialize[WithArray](reader) must_== WithArray(1.2431, "one"::"two"::"three"::Nil)
+    }
+
+    "Parse array of objects" in {
+      case class Simple(one: Int, two: Boolean)
+      val json =
+        """{"one": 1, "two": true}, {"one": 11, "two": false}"""
+      val reader = new TextArrayIterator(json)
+      Macros.deserialize[List[Simple]](reader) must_== Simple(1, true)::Simple(11, false)::Nil
+    }
   }
 }
