@@ -12,52 +12,86 @@ class TextReaderSpec extends Specification {
   val json =
     """{ "cats": 34, "dogs": { "cats": true, "fish": [1, "cats", [1, 2, 3]] } }"""
 
-  val textReader = TextReaderHelpers
+
 
   "TextReader" should {
     "Find next object" in {
-      textReader.findNextObject(json) must_==
-        (""" "cats": 34, "dogs": { "cats": true, "fish": [1, "cats", [1, 2, 3]] } """, "")
+      (new JsonTextCursor(json)).findNextObject() must_==
+        """ "cats": 34, "dogs": { "cats": true, "fish": [1, "cats", [1, 2, 3]] } """
     }
+
     "Recursively find next object" in {
-      textReader.findNextObject(textReader.findNextObject(json)._1)._1 must_==
-        """ "cats": true, "fish": [1, "cats", [1, 2, 3]] """
+      val r1 = new JsonTextCursor(json)
+      val str = r1.findNextObject()
+      str must_== """ "cats": 34, "dogs": { "cats": true, "fish": [1, "cats", [1, 2, 3]] } """
+
+      val r2 = new JsonTextCursor(str)
+      r2.findNextObject() must_== """ "cats": true, "fish": [1, "cats", [1, 2, 3]] """
     }
 
     "Find next array" in {
-      textReader.findNextArray(json) must_== ("""1, "cats", [1, 2, 3]""", " } }")
+      val cursor = new JsonTextCursor(json)
+        cursor.findNextArray() must_== """1, "cats", [1, 2, 3]"""
+        cursor.remainder must_== " } }"
     }
 
     "Unescape string properly" in {
-      textReader.unescapeString("abc\\\"\\\\\\/\\b\\f\\n\\r\\t\\u00a0") must_== "abc\"\\/\b\f\n\r\t\u00a0"
+      (new JsonTextCursor("")).unescapeString("abc\\\"\\\\\\/\\b\\f\\n\\r\\t\\u00a0") must_== "abc\"\\/\b\f\n\r\t\u00a0"
     }
 
     "Strip down a string" in {
-      textReader.findNextString(" , \"Hello world! \\\" this is cool \\\" \" ") must_== ("Hello world! \" this is cool \" ", " ")
+      (new JsonTextCursor("\"Hello world! \\\" this is cool \\\" \" "))
+        .findNextString() must_== "Hello world! \" this is cool \" "
     }
 
     "Strip down a number" in {
-      textReader.findNextNumber("34 }") must_== ("34", " }")
-      textReader.findNextNumber("34, ") must_== ("34", ", ")
-      textReader.findNextNumber("34.54, ") must_== ("34.54", ", ")
-      textReader.findNextNumber("-34e-5, ") must_== ("-34e-5", ", ")
+      val r1 = new JsonTextCursor("34 }")
+      r1.findNextNumber() must_== "34"
+      r1.remainder must_== " }"
+
+      val r2 = new JsonTextCursor("34, ")
+      r2.findNextNumber() must_== "34"
+      r2.remainder must_== ", "
+
+      val r3 = new JsonTextCursor("34.54, ")
+      r3.findNextNumber() must_== "34.54"
+      r3.remainder must_== ", "
+
+      val r4 = new JsonTextCursor("-34e-5, ")
+      r4.findNextNumber() must_== "-34e-5"
+      r4.remainder must_== ", "
     }
 
     "Find a boolean" in {
-      textReader.findNextBoolean("true, ") must_== ("true", ", ")
-      textReader.findNextBoolean("false, ") must_== ("false", ", ")
+      val r1 = new JsonTextCursor("true, ")
+      r1.findNextBoolean() must_== true
+      r1.remainder must_== ", "
+
+      val r2 = new JsonTextCursor("false, ")
+      r2.findNextBoolean() must_== false
+      r2.remainder must_== ", "
     }
 
     "break down an object" in {
       val reader = new TextObjectReader(json.substring(1, json.length-1))
       reader.fields must_==
         ("cats", JsonNumber("34"))::
-        ("dogs", JsonObject(""" "cats": true, "fish": [1, "cats", [1, 2, 3]] """))::Nil
+          ("dogs", JsonObject(""" "cats": true, "fish": [1, "cats", [1, 2, 3]] """))::Nil
 
       val reader2 = new TextObjectReader(""" "ca[]ts": true, "fi{sh": [1, "cats", [1, 2, 3]] """)
       reader2.fields must_==
         ("ca[]ts", JsonBool(true))::
           ("fi{sh", JsonArray("""1, "cats", [1, 2, 3]"""))::Nil
+    }
+
+    "break down an array" in {
+      val reader = new TextArrayIterator(""" 3, false, { "cat": "cool" }, [ 1, 2] """)
+      reader.nextInt must_== 3
+      reader.nextBool must_== false
+      reader.nextObjectReader.asInstanceOf[TextObjectReader].fields must_== ("cat", JsonString("cool") )::Nil
+      val r2 = reader.nextArrayReader
+      r2.nextInt must_== 1
+      r2.nextInt must_== 2
     }
   }
 
