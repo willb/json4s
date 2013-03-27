@@ -26,7 +26,7 @@ case class JsonNumber(str: String) extends JsonField {
   def toBigDecimal = BigDecimal(str)
 }
 
-protected abstract class TextReader {
+private[json4s] object TextReaderHelpers {
 
   def isDelimiter(c: Char) = c == ' ' || c == '\n' || c == ',' || c == '\r' || c == '\t' || c == '}' || c == ']'
   def isNumberChar(c: Char) = (Character.isDigit(c) || c == '.' || c == 'e' || c == 'E' || c == '-' || c == '+')
@@ -77,10 +77,9 @@ protected abstract class TextReader {
     (unescapeString(txt.substring(begin, end)), txt.substring(end+1))
   }
 
-  // Will fail if the string ends with a number char! Shouldn't happen in json.
   def findNextNumber(txt: String): (String, String) = {
-    var end = 1
-    while(isNumberChar(txt.charAt(end))) end += 1
+    var end = 0
+    while(end < txt.length && isNumberChar(txt.charAt(end))) end += 1
     (txt.substring(0, end), txt.substring(end))
   }
 
@@ -94,18 +93,23 @@ protected abstract class TextReader {
   def findNextArray(txt: String) = findNextBlock(txt, '[', ']')
 
   private def findNextBlock(txt: String, start: Char, finish: Char): (String, String) = {
-    var inQuote = false
     var beginning = 0
     var current = ' '
-    while({current = txt.charAt(beginning); current != start || inQuote}) {
-      if ((current == '"') && (txt.charAt(beginning-1) != '\\')) inQuote = !inQuote
-      beginning +=1
+    while({current = txt.charAt(beginning); current != start}) {
+      if (current == '"') {
+        beginning +=1
+        while(!(txt.charAt(beginning) == '"' &&  txt.charAt(beginning-1) != '\\')) beginning +=1
+      }
+      beginning += 1
     }
 
     var end = beginning + 1
     var innerObjs = 0
-    while({current = txt.charAt(end); current != finish || innerObjs > 0} || inQuote) {
-      if ((current == '"') && (txt.charAt(end-1) != '\\')) inQuote = !inQuote
+    while({current = txt.charAt(end); current != finish || innerObjs > 0}) {
+      if (current == '"') {
+        end +=1
+        while(!(txt.charAt(end) == '"' &&  txt.charAt(end-1) != '\\')) end +=1
+      }
       else if (current == start) innerObjs += 1
       else if (current == finish) innerObjs -= 1
       end +=1
@@ -113,9 +117,44 @@ protected abstract class TextReader {
     (txt.substring(beginning+1, end), if(end != txt.length) txt.substring(end+1) else "")
   }
 
+  def extractField(str: String): (String, JsonField) =
+    if(str.length == 0) {
+      invalidJson(s"Tried to extract field that doesn't exist!")
+    } else str.charAt(0) match {
+    case '"'                    =>
+      val (value, remainder) = findNextString(str)
+      (remainder, JsonString(value))
+
+    case '{'                    =>
+      val (value, remainder) = findNextObject(str)
+      (remainder, JsonObject(value))
+
+    case '['                    =>
+      val (value, remainder) = findNextArray(str)
+      (remainder, JsonArray(value))
+
+    case c if (isNumberChar(c)) =>
+      val (value, remainder) = findNextNumber(str)
+      (remainder, JsonNumber(value))
+
+    case 't' if (str.charAt(1) == 'r' && str.charAt(2) == 'u' && str.charAt(3) == 'e') =>
+      (str.substring(4), JsonBool(true))
+
+
+    case 'f' if (str.charAt(1) == 'a' && str.charAt(2) == 'l' && str.charAt(3) == 's' && str.charAt(4) == 'e') =>
+      (str.substring(5), JsonBool(false))
+
+    case 'n' if (str.charAt(1) == 'u' && str.charAt(2) == 'l' && str.charAt(3) == 'l') =>
+      (str.substring(4), Null)
+
+    case _ => invalidJson(s"Failed to extract field from remaining json: $str")
+
+  }
+
 }
 
-final class TextObjectReader(txt: String, strict: Boolean = false) extends TextReader with JsonObjectReader {
+final class TextObjectReader(txt: String) extends JsonObjectReader {
+  import TextReaderHelpers._
 
   // txt should not include the brackets {}, but everything just inside them
   def isSeparator(in: Char) = ( in == ' ' || in == '\r' || in == '\t' || in == '\n' || in == ',' || in == ':')
@@ -135,39 +174,8 @@ final class TextObjectReader(txt: String, strict: Boolean = false) extends TextR
       pos += 1
       while(isWhitespace(rest.charAt(pos))) pos += 1
 
-      val remainder = rest.charAt(pos) match {
-        case '"'                    =>
-          val (value, remainder) = findNextString(rest.substring(pos))
-          builder += ((key, JsonString(value)))
-          remainder
-
-        case '{'                    =>
-          val (value, remainder) = findNextObject(rest.substring(pos))
-          builder += ((key, JsonObject(value)))
-          remainder
-
-        case '['                    =>
-          val (value, remainder) = findNextArray(rest.substring(pos))
-          builder += ((key, JsonArray(value)))
-          remainder
-
-        case c if (isNumberChar(c)) =>
-          val (value, remainder) = findNextNumber(rest.substring(pos))
-          builder += ((key, JsonNumber(value)))
-          remainder
-
-        case 't' if (rest.charAt(pos+1) == 'r' && rest.charAt(pos+2) == 'u' && rest.charAt(pos+3) == 'e') =>
-          builder += ((key, JsonBool(true)))
-          rest.substring(pos + 4)
-
-        case 'f' if (rest.charAt(pos+1) == 'a' && rest.charAt(pos+2) == 'l' && rest.charAt(pos+3) == 's' && rest.charAt(pos+4) == 'e') =>
-          builder += ((key, JsonBool(true)))
-          rest.substring(pos + 5)
-
-        case 'n' if (rest.charAt(pos+1) == 'u' && rest.charAt(pos+2) == 'l' && rest.charAt(pos+3) == 'l') =>
-          builder += ((key, Null))
-          rest.substring(pos + 4)
-      }
+      val (remainder, value) = extractField(rest.substring(pos))
+      builder += ((key, value))
 
       pos = 0
       while(pos < remainder.length && isWhitespace(remainder.charAt(pos))) pos += 1
@@ -175,6 +183,7 @@ final class TextObjectReader(txt: String, strict: Boolean = false) extends TextR
       else if (remainder.charAt(pos) == ',') looper(remainder.substring(pos+1))
       else invalidJson(s"Failed to find end or valid separator of Object fields: ${remainder.charAt(pos)}")
     }
+
     var pos = 0
     while(pos < txt.length && isWhitespace(txt.charAt(pos))) pos += 1
     if (pos != txt.length) looper(txt.substring(pos))
@@ -237,27 +246,86 @@ final class TextObjectReader(txt: String, strict: Boolean = false) extends TextR
   })
 }
 
-final class TextArrayIterator(txt: String, strict: Boolean = false) extends JsonArrayIterator {
-  def hasNext: Boolean = ???
+final class TextArrayIterator(txt: String) extends JsonArrayIterator {
+  import TextReaderHelpers._
+
+  private var current = {
+    var pos = 0
+    while(pos < txt.length && isWhitespace(txt.charAt(pos))) pos += 1
+    txt.substring(pos)
+  }
+
+  private def zoomToNext() {
+    var pos = 0
+    while(pos < current.length && isWhitespace(current.charAt(pos))) pos += 1   // zoom over whitespace
+    if (pos == current.length) current = ""
+    else if (current.charAt(pos) != ',')
+      invalidJson(s"Array parser ran into illegal delimeter: ${current.charAt(pos)} as position $pos in json: $current")
+    else {
+      pos += 1
+      while(pos < current.length && isWhitespace(current.charAt(pos))) pos += 1  // zoom again
+      if (pos == current.length) current = ""
+      else current = current.substring(pos)
+    }
+  }
+
+  private def nextField: JsonField = {
+    val (remainder, value) = extractField(current)
+    current = remainder
+    zoomToNext()
+    value
+  }
+
+  def hasNext: Boolean = (current.length != 0)
 
   // Option forms
-  def getNextObjectReader: Option[JsonObjectReader] = ???
+  def getNextObjectReader: Option[JsonObjectReader] = nextField match {
+    case JsonObject(str) => Some(new TextObjectReader(str))
+    case _ => None
+  }
 
-  def getNextArrayReader: Option[JsonArrayIterator] = ???
+  def getNextArrayReader: Option[JsonArrayIterator] = nextField match {
+    case JsonArray(str) => Some(new TextArrayIterator(str))
+    case _ => None
+  }
 
-  def getNextInt: Option[Int] = ???
+  def getNextInt: Option[Int] = nextField match {
+    case n: JsonNumber => Some(n.toInt)
+    case _ => None
+  }
 
-  def getNextLong: Option[Long] = ???
+  def getNextLong: Option[Long] = nextField match {
+    case n: JsonNumber => Some(n.toLong)
+    case _ => None
+  }
 
-  def getNextFloat: Option[Float] = ???
+  def getNextFloat: Option[Float] = nextField match {
+    case n: JsonNumber => Some(n.toFloat)
+    case _ => None
+  }
 
-  def getNextDouble: Option[Double] = ???
+  def getNextDouble: Option[Double] = nextField match {
+    case n: JsonNumber => Some(n.toDouble)
+    case _ => None
+  }
 
-  def getNextBigInt: Option[BigInt] = ???
+  def getNextBigInt: Option[BigInt] = nextField match {
+    case n: JsonNumber => Some(n.toBigInt)
+    case _ => None
+  }
 
-  def getNextBigDecimal: Option[BigDecimal] = ???
+  def getNextBigDecimal: Option[BigDecimal] = nextField match {
+    case n: JsonNumber => Some(n.toBigDecimal)
+    case _ => None
+  }
 
-  def getNextBool: Option[Boolean] = ???
+  def getNextBool: Option[Boolean] = nextField match {
+    case JsonBool(v) => Some(v)
+    case _ => None
+  }
 
-  def getNextString: Option[String] = ???
+  def getNextString: Option[String] = nextField match {
+    case JsonString(str) => Some(str)
+    case _ => None
+  }
 }
