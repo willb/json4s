@@ -155,6 +155,7 @@ object Deserializer {
       else if (tpe =:= typeOf[Long])        reify { reader.splice.getLong(field.splice)  }.tree
       else if (tpe =:= typeOf[Float])       reify { reader.splice.getFloat(field.splice) }.tree
       else if (tpe =:= typeOf[Double])      reify { reader.splice.getDouble(field.splice)}.tree
+      else if (tpe =:= typeOf[Boolean])      reify { reader.splice.getBool(field.splice)}.tree
       else if (tpe =:= typeOf[String])      { rparseString(field, reader).tree }
       else if (tpe =:= typeOf[Date])         { rparseDate(field, reader).tree   }
       else if (tpe =:= typeOf[scala.Symbol]) { rparseSymbol(field, reader).tree }
@@ -167,6 +168,7 @@ object Deserializer {
       else if (tpe =:= typeOf[Float])       reify { reader.splice.optFloat(field.splice)  }
       else if (tpe =:= typeOf[Double])      reify { reader.splice.optDouble(field.splice) }
       else if (tpe =:= typeOf[String])      reify { reader.splice.optString(field.splice) }
+      else if (tpe =:= typeOf[Boolean])     reify { reader.splice.optBool(field.splice)   }
       else if (tpe =:= typeOf[Date])         reify {
         reader.splice.optString(field.splice).flatMap(defaultFormats.splice.dateFormat.parse(_))
       }
