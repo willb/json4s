@@ -103,19 +103,21 @@ private[json4s] class JsonTextCursor(txt: String) {
   def findNextString(): String = {
     if(txt.charAt(current) != '"') fail(s"Failed to find string next in '$remainder'")
     var end = current + 1
-    while(!(txt.charAt(end) == '"' && {
-      if(txt.charAt(end-1) != '\\') true
-      else {   // Need to make sure we didn't escape the slash that is escaping the slash etc...
-        var slashes = 1
-        while(txt.charAt(end - slashes - 1) == '\\') slashes += 1
-        slashes % 2 == 0
-      }
-    })) end +=1
+    while(!(txt.charAt(end) == '"' && checkEscaped(end))) end +=1
 
     val str = unescapeString(txt.substring(current + 1, end))
     current = end + 1
     str
   }
+
+  @inline
+  final def checkEscaped(end: Int) =
+    if(txt.charAt(end-1) != '\\') true
+    else {   // Need to make sure we didn't escape the slash that is escaping the slash etc...
+    var slashes = 1
+      while(txt.charAt(end - slashes - 1) == '\\') slashes += 1
+      slashes % 2 == 0
+    }
 
   @inline final def trim() { while(current < maxLength && isWhitespace(txt.charAt(current))) current += 1 }
 
@@ -168,7 +170,7 @@ private[json4s] class JsonTextCursor(txt: String) {
     while({c = txt.charAt(current); c != start}) {
       if (c == '"') {
         current +=1
-        while(!(txt.charAt(current) == '"' &&  txt.charAt(current-1) != '\\')) current +=1
+        while(!(txt.charAt(current) == '"' &&  checkEscaped(current))) current +=1
       }
       current += 1
     }
