@@ -9,24 +9,51 @@ import annotation.tailrec
  * Created on 3/25/13 at 8:37 PM
  */
 
-sealed trait JsonField
 
-case object END extends JsonField
-case object Null extends JsonField
-case class JsonBool(v: Boolean) extends JsonField
-case class JsonString(str: String) extends JsonField
-case class JsonObject(str: String) extends JsonField
-case class JsonArray(str: String) extends JsonField
-case class JsonNumber(str: String) extends JsonField {
-  def toInt = str.toInt
-  def toLong = str.toLong
-  def toBigInt = BigInt(str)
-  def toDouble = str.toDouble
-  def toFloat = str.toFloat
-  def toBigDecimal = BigDecimal(str)
+object TextReader {
+  def bindText(str: String) = {
+//    val cursor = new JsonTextCursor(str)
+//    cursor.trim()
+//    cursor.extractField() match {
+//      case cursor.JsonObject(str) => new TextObjectReader(str)
+//      case cursor.JsonArray(str)  => new TextArrayIterator(str)
+//      case e => cursor.fail(s"Invalid starting json structure: $e")
+//    }
+
+    // This way is significantly faster than zooming throughout the whole text as commented out above.
+    var beginning = 0
+    var end = str.length - 1
+    while(beginning < str.length && str.charAt(beginning) != '{' && str.charAt(beginning) != '[' ) beginning += 1
+    if (beginning == str.length) throw new java.lang.IllegalStateException(s"string doesn't contain json array or objects.")
+    if (str.charAt(beginning) == '{') {
+      while(end >= beginning && str.charAt(end) != '}') end -= 1
+      new TextObjectReader(str.substring(beginning+1, end))
+    } else{
+      while(end >= beginning && str.charAt(end) != ']') end -= 1
+      new TextArrayIterator(str.substring(beginning+1, end))
+    }
+  }
 }
 
+
 private[json4s] class JsonTextCursor(txt: String) {
+
+  private[json4s] sealed trait JsonField
+  private[json4s] case object END extends JsonField
+  private[json4s] case object Null extends JsonField
+  private[json4s] case class JsonBool(v: Boolean) extends JsonField
+  private[json4s] case class JsonString(str: String) extends JsonField
+  private[json4s] case class JsonObject(str: String) extends JsonField
+  private[json4s] case class JsonArray(str: String) extends JsonField
+  private[json4s] case class JsonNumber(str: String) extends JsonField {
+    def toInt = str.toInt
+    def toLong = str.toLong
+    def toBigInt = BigInt(str)
+    def toDouble = str.toDouble
+    def toFloat = str.toFloat
+    def toBigDecimal = BigDecimal(str)
+  }
+
   private var current = 0
   private val maxLength = txt.length
 
@@ -73,11 +100,17 @@ private[json4s] class JsonTextCursor(txt: String) {
     }
   }
 
-  // TODO: Will fail on strings like '"Hello world \\"'
   def findNextString(): String = {
     if(txt.charAt(current) != '"') fail(s"Failed to find string next in '$remainder'")
     var end = current + 1
-    while(!(txt.charAt(end) == '"' && txt.charAt(end-1) != '\\' )) end +=1
+    while(!(txt.charAt(end) == '"' && {
+      if(txt.charAt(end-1) != '\\') true
+      else {   // Need to make sure we didn't escape the slash that is escaping the slash etc...
+        var slashes = 1
+        while(txt.charAt(end - slashes - 1) == '\\') slashes += 1
+        slashes % 2 == 0
+      }
+    })) end +=1
 
     val str = unescapeString(txt.substring(current + 1, end))
     current = end + 1
