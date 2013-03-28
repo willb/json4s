@@ -60,7 +60,6 @@ class Json4sBenchmark extends SimpleScalaBenchmark {
 
   def timeJacksonSerialization(reps: Int) = repeat(reps) { mapper.writeValueAsString(project) }
 
-  //Macro  TODO: -- THROWS EXCEPTION --
   def timeJsonMacroSerialization(reps: Int) = repeat(reps) {
     val writer = JsonWriter.streaming(new StringWriter())
     Macros.serialize(project, writer)
@@ -70,10 +69,7 @@ class Json4sBenchmark extends SimpleScalaBenchmark {
   def timeJacksonDeserialization(reps: Int) = repeat(reps) { mapper.readValue(projectJson, classOf[Project]) }
 
   // The interface needs some cleaning up
-  def timeJson4sMacroDeserialization(reps: Int) = repeat(reps) {
-    val reader = new org.json4s.playground.TextObjectReader(projectJson.substring(1, projectJson.length-1))
-    Macros.deserialize[Project](reader)
-  }
+  def timeJson4sMacroDeserialization(reps: Int) = repeat(reps) { Macros.read[Project](projectJson) }
 
   def timeJacksonParsing(reps: Int) = repeat(reps) { mapper.readValue(glossaryJson, classOf[JsonNode]) }
 
@@ -116,5 +112,4 @@ class Json4sBenchmark extends SimpleScalaBenchmark {
   def timeJson4sJacksonJValueWriting(reps: Int) = repeat(reps) {
     jackson.JsonMethods.compact(jackson.JsonMethods.render(projectJValue))
   }
-
 }

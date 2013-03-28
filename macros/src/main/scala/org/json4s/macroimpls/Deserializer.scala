@@ -14,6 +14,13 @@ object Deserializer {
   import java.util.Date
   import org.json4s.Formats
 
+  def read[U](str: String)(implicit defaultFormats: Formats) = macro read_impl[U]
+  def read_impl[U: c.WeakTypeTag](c: Context)(str: c.Expr[String])(defaultFormats: c.Expr[Formats]): c.Expr[U] = {
+    import c.universe._
+    val reader = reify (playground.TextReader.bindText(str.splice))
+    deserialize_impl[U](c)(reader)(defaultFormats)
+  }
+
   // The meat and potatoes of the implementation.
   def deserialize[U](reader: JsonReader)(implicit defaultFormats: Formats) = macro deserialize_impl[U]
   def deserialize_impl[U: c.WeakTypeTag](c: Context)(reader: c.Expr[JsonReader])
