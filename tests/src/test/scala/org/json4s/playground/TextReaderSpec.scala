@@ -35,6 +35,18 @@ class TextReaderSpec extends Specification {
         cursor.remainder must_== " } }"
     }
 
+    "Find next string" in {
+      val cursor = new JsonTextCursor(""""Hello world" """)
+      cursor.findNextString() must_== "Hello world"
+      cursor.remainder must_== " "
+    }
+
+    "Find next string with escaped escape" in {
+      val cursor = new JsonTextCursor(""""Hello world\\" """)
+      cursor.findNextString() must_== """Hello world\"""
+      cursor.remainder must_== " "
+    }
+
     "Unescape string properly" in {
       (new JsonTextCursor("")).unescapeString("abc\\\"\\\\\\/\\b\\f\\n\\r\\t\\u00a0") must_== "abc\"\\/\b\f\n\r\t\u00a0"
     }
@@ -75,23 +87,38 @@ class TextReaderSpec extends Specification {
     "break down an object" in {
       val reader = new TextObjectReader(json.substring(1, json.length-1))
       reader.fields must_==
-        ("cats", JsonNumber("34"))::
-          ("dogs", JsonObject(""" "cats": true, "fish": [1, "cats", [1, 2, 3]] """))::Nil
+        ("cats", reader.JsonNumber("34"))::
+          ("dogs", reader.JsonObject(""" "cats": true, "fish": [1, "cats", [1, 2, 3]] """))::Nil
 
       val reader2 = new TextObjectReader(""" "ca[]ts": true, "fi{sh": [1, "cats", [1, 2, 3]] """)
       reader2.fields must_==
-        ("ca[]ts", JsonBool(true))::
-          ("fi{sh", JsonArray("""1, "cats", [1, 2, 3]"""))::Nil
+        ("ca[]ts", reader2.JsonBool(true))::
+          ("fi{sh", reader2.JsonArray("""1, "cats", [1, 2, 3]"""))::Nil
     }
 
     "break down an array" in {
       val reader = new TextArrayIterator(""" 3, false, { "cat": "cool" }, [ 1, 2] """)
       reader.nextInt must_== 3
       reader.nextBool must_== false
-      reader.nextObjectReader.asInstanceOf[TextObjectReader].fields must_== ("cat", JsonString("cool") )::Nil
+      reader.nextObjectReader.asInstanceOf[TextObjectReader].fields must_== ("cat", reader.JsonString("cool") )::Nil
       val r2 = reader.nextArrayReader
       r2.nextInt must_== 1
       r2.nextInt must_== 2
+    }
+  }
+
+  "TextReader helpers" should {
+    "Extract an object" in {
+      val r = TextReader.bindText(json)
+      r must beAnInstanceOf[TextObjectReader]
+      r.asInstanceOf[TextObjectReader].remainder must_== ""
+    }
+
+    "Extract an array" in {
+      val r = TextReader.bindText("""[1, "cats", [1, 2, 3]]""")
+      r must beAnInstanceOf[TextArrayIterator]
+
+      r.asInstanceOf[TextArrayIterator].remainder must_== "1, \"cats\", [1, 2, 3]"
     }
   }
 
@@ -104,40 +131,30 @@ class TextReaderSpec extends Specification {
     case class AnimalFarm(count: Int, one: Animals)
 
     "Parse simple object" in {
-      val json =
-        """"cats": 34, "dogs": "Hello World!""""
-      val reader = new TextObjectReader(json)
-      Macros.deserialize[Animals](reader) must_== Animals(34, "Hello World!")
+      val json = """{"cats": 34, "dogs": "Hello World!"}"""
+      Macros.read[Animals](json) must_== Animals(34, "Hello World!")
     }
 
     "Parse simple array" in {
-      val json =
-        """1, 2, 3"""
-      val reader = new TextArrayIterator(json)
-      Macros.deserialize[List[Int]](reader) must_== 1::2::3::Nil
+      val json =  """[1, 2, 3]"""
+      Macros.read[List[Int]](json) must_== 1::2::3::Nil
     }
 
     "Parse compound object" in {
-      val json =
-        """"count": 1, "one" : { "cats": 34, "dogs": "Hello World!" }"""
-      val reader = new TextObjectReader(json)
-      Macros.deserialize[AnimalFarm](reader) must_== AnimalFarm(1, Animals(34, "Hello World!"))
+      val json =  """{"count": 1, "one" : { "cats": 34, "dogs": "Hello World!" }}"""
+      Macros.read[AnimalFarm](json) must_== AnimalFarm(1, Animals(34, "Hello World!"))
     }
 
     "Parse object with array" in {
       case class WithArray(in: Double, lst: List[String])
-      val json =
-        """"in": 1.2431, "lst": [ "one", "two" , "three" ]"""
-      val reader = new TextObjectReader(json)
-      Macros.deserialize[WithArray](reader) must_== WithArray(1.2431, "one"::"two"::"three"::Nil)
+      val json = """{ "in": 1.2431, "lst": [ "one", "two" , "three" ] }"""
+      Macros.read[WithArray](json) must_== WithArray(1.2431, "one"::"two"::"three"::Nil)
     }
 
     "Parse array of objects" in {
       case class Simple(one: Int, two: Boolean)
-      val json =
-        """{"one": 1, "two": true}, {"one": 11, "two": false}"""
-      val reader = new TextArrayIterator(json)
-      Macros.deserialize[List[Simple]](reader) must_== Simple(1, true)::Simple(11, false)::Nil
+      val json =  """[{"one": 1, "two": true}, {"one": 11, "two": false}]"""
+      Macros.read[List[Simple]](json) must_== Simple(1, true)::Simple(11, false)::Nil
     }
   }
 }

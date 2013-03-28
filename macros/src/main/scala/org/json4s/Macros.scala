@@ -14,6 +14,7 @@ object Macros {
   
   def deserialize[U](reader: JsonReader)(implicit defaultFormats: Formats) =
       macro macroimpls.Deserializer.deserialize_impl[U]
-//  def deserializeEither[U](params: JValue)(implicit defaultFormats: Formats): Either[ParserUtil.ParseException,U] =
-//      macro macroimpls.Deserializer.eitherDeserialize_impl[U]
+
+  def read[U](str: String)(implicit defaultFormats: Formats) =
+      macro macroimpls.Deserializer.read_impl[U]
 }
