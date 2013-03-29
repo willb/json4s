@@ -161,15 +161,6 @@ object JsonAST {
     def values = arr.map(_.values)
     override def apply(i: Int): JValue = arr(i)
   }
-<<<<<<< HEAD
-=======
-//
-//  case class LazyJArray(arr: Stream[JValue]) extends JValue {
-//    type Values = Stream[Any]
-//    def values = arr.map(_.values)
-//    override def apply(i: Int): JValue = arr(i)
-//  }
->>>>>>> Pulled changes to JsonAST and json_writers from master.
 
   type JField = (String, JValue)
   object JField {
@@ -177,7 +168,6 @@ object JsonAST {
     def unapply(f: JField): Option[(String, JValue)] = Some(f)
   }
 
-<<<<<<< HEAD
   private[this] trait StringAppender[T] {
     def append(s: String): T
     def subj: T
@@ -192,42 +182,27 @@ object JsonAST {
   private[json4s] def quote(s: String): String = quote(s, new StringBuilderAppender(new StringBuilder)).toString
   private[json4s] def quote(s: String, writer: java.io.Writer): java.io.Writer = quote(s, new StringWriterAppender(writer))
   private[this] def quote[T](s: String, appender: StringAppender[T]): T = { // hot path
-    var i = 0
+    var i: Int = 0
+    var begin = 0
     val l = s.length
     while(i < l) {
-      val c = s(i)
-      if (c == '"') appender.append("\\\"")
-      else if (c == '\\') appender.append("\\\\")
-      else if (c == '\b') appender.append("\\b")
-      else if (c == '\f') appender.append("\\f")
-      else if (c == '\n') appender.append("\\n")
-      else if (c == '\r') appender.append("\\r")
-      else if (c == '\t') appender.append("\\t")
-      else if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100'))
-        appender.append("\\u%04x".format(c: Int))
-      else appender.append(c.toString)
-      i += 1
-    }
-    appender.subj
-=======
-  private[json4s] def quote(s: String): String = quote(s, new StringWriter()).toString
-  private[json4s] def quote(s: String, writer: java.io.Writer): java.io.Writer = {
-    var i: Int = 0
-    while(i < s.length) {
       val c = s.charAt(i)
-      if(c == '"') writer.append("\\\"")
-      else if(c == '\\') writer.append("\\\\")
-      else if(c == '\b') writer.append("\\b")
-      else if(c == '\f') writer.append("\\f")
-      else if(c == '\n') writer.append("\\n")
-      else if(c == '\r') writer.append("\\r")
-      else if(c == '\t') writer.append("\\t")
-      else if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100')) writer.append("\\u%04x".format(c: Int))
-      else writer.append(c)
+      if(c == '"')       { appender.append(s.substring(begin,i)); begin = i+1; appender.append("\\\"") }
+      else if(c == '\\') { appender.append(s.substring(begin,i)); begin = i+1; appender.append("\\\\") }
+      else if(c == '\b') { appender.append(s.substring(begin,i)); begin = i+1; appender.append("\\b")  }
+      else if(c == '\f') { appender.append(s.substring(begin,i)); begin = i+1; appender.append("\\f")  }
+      else if(c == '\n') { appender.append(s.substring(begin,i)); begin = i+1; appender.append("\\n")  }
+      else if(c == '\r') { appender.append(s.substring(begin,i)); begin = i+1; appender.append("\\r")  }
+      else if(c == '\t') { appender.append(s.substring(begin,i)); begin = i+1; appender.append("\\t")  }
+      else if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100')) {
+        appender.append(s.substring(begin,i)); begin = i+1
+        appender.append("\\u%04x".format(c: Int))
+      }
+
       i+=1
     }
-    writer
->>>>>>> Pulled changes to JsonAST and json_writers from master.
+    appender.append(s.substring(begin,i))
+    appender.subj
   }
 }
 
