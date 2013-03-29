@@ -15,17 +15,6 @@ sealed trait JsonReader {
 trait JsonObjectReader extends JsonReader {
   def getKeys: Seq[String]
 
-  def getObjectReader(key: String): JsonObjectReader = optObjectReader(key).get
-  def getArrayReader(key: String): JsonArrayIterator = optArrayReader(key).get
-  def getInt(key: String): Int                       = optInt(key).get
-  def getLong(key: String): Long                     = optLong(key).get
-  def getFloat(key: String): Float                   = optFloat(key).get
-  def getDouble(key: String): Double                 = optDouble(key).get
-  def getBigInt(key: String): BigInt                 = optBigInt(key).get
-  def getBigDecimal(key: String): BigDecimal         = optBigDecimal(key).get
-  def getBool(key: String): Boolean                  = optBool(key).get
-  def getString(key: String): String                 = optString(key).get
-
   // Option forms
   def optObjectReader(key: String): Option[JsonObjectReader]
   def optArrayReader(key: String): Option[JsonArrayIterator]
@@ -37,20 +26,31 @@ trait JsonObjectReader extends JsonReader {
   def optBigDecimal(key: String): Option[BigDecimal]
   def optBool(key: String): Option[Boolean]
   def optString(key: String): Option[String]
+
+  // Direct forms with default impl based on the Option form
+  def getObjectReader(key: String): JsonObjectReader =
+    optObjectReader(key).getOrElse(fail(s"JsonObject doesn't contain an object in field '$key'"))
+  def getArrayReader(key: String): JsonArrayIterator =
+    optArrayReader(key).getOrElse(fail(s"JsonObject doesn't contain an array in field '$key'"))
+  def getInt(key: String): Int =
+    optInt(key).getOrElse(fail(s"JsonObject doesn't contain an Int in field '$key'"))
+  def getLong(key: String): Long =
+    optLong(key).getOrElse(fail(s"JsonObject doesn't contain an Long in field '$key'"))
+  def getFloat(key: String): Float =
+    optFloat(key).getOrElse(fail(s"JsonObject doesn't contain a Float in field '$key'"))
+  def getDouble(key: String): Double =
+    optDouble(key).getOrElse(fail(s"JsonObject doesn't contain a Double in field '$key'"))
+  def getBigInt(key: String): BigInt =
+    optBigInt(key).getOrElse(fail(s"JsonObject doesn't contain a BigInt in field '$key'"))
+  def getBigDecimal(key: String): BigDecimal =
+    optBigDecimal(key).getOrElse(fail(s"JsonObject doesn't contain a BigDecimal in field '$key'"))
+  def getBool(key: String): Boolean =
+    optBool(key).getOrElse(fail(s"JsonObject doesn't contain a Boolean in field '$key'"))
+  def getString(key: String): String =
+    optString(key).getOrElse(fail(s"JsonObject doesn't contain a string in field '$key'"))
 }
 
 trait JsonArrayIterator extends JsonReader {
-  def hasNext: Boolean
-  def nextObjectReader: JsonObjectReader        = getNextObjectReader.get
-  def nextArrayReader: JsonArrayIterator        = getNextArrayReader.get
-  def nextInt: Int                              = getNextInt.get
-  def nextLong: Long                            = getNextLong.get
-  def nextFloat: Float                          = getNextFloat.get
-  def nextDouble: Double                        = getNextDouble.get
-  def nextBigInt: BigInt                        = getNextBigInt.get
-  def nextBigDecimal: BigDecimal                = getNextBigDecimal.get
-  def nextBool: Boolean                         = getNextBool.get
-  def nextString: String                        = getNextString.get
 
   // Option forms
   def getNextObjectReader: Option[JsonObjectReader]
@@ -63,4 +63,27 @@ trait JsonArrayIterator extends JsonReader {
   def getNextBigDecimal: Option[BigDecimal]
   def getNextBool: Option[Boolean]
   def getNextString: Option[String]
+
+  // Direct forms with default impl based on the option forms
+  def hasNext: Boolean
+  def nextObjectReader: JsonObjectReader =
+    getNextObjectReader.getOrElse(fail("JsonArray next value is not of type 'object'"))
+  def nextArrayReader: JsonArrayIterator =
+    getNextArrayReader.getOrElse(fail("JsonArray next value is not of type 'array'"))
+  def nextInt: Int =
+    getNextInt.getOrElse(fail("JsonArray next value is not of type 'Int'"))
+  def nextLong: Long =
+    getNextLong.getOrElse(fail("JsonArray next value is not of type 'Long'"))
+  def nextFloat: Float =
+    getNextFloat.getOrElse(fail("JsonArray next value is not of type 'Float'"))
+  def nextDouble: Double =
+    getNextDouble.getOrElse(fail("JsonArray next value is not of type 'Double'"))
+  def nextBigInt: BigInt =
+    getNextBigInt.getOrElse(fail("JsonArray next value is not of type 'BigInt'"))
+  def nextBigDecimal: BigDecimal =
+    getNextBigDecimal.getOrElse(fail("JsonArray next value is not of type 'BigDecimal'"))
+  def nextBool: Boolean =
+    getNextBool.getOrElse(fail("JsonArray next value is not of type 'Boolean'"))
+  def nextString: String =
+    getNextString.getOrElse(fail("JsonArray next value is not of type 'String'"))
 }
