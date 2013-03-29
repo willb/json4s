@@ -307,10 +307,10 @@ private final class FieldStreamingJsonWriter[T <: JWriter](name: String, isFirst
 
   private[this] def writeName(hasPretty: Boolean) {
     if (!isFirst) {
-      nodes.write(",")
+      nodes.write(',')
       writePretty()
     }
-    nodes.append("\"")
+    nodes.append('"')
     JsonAST.quote(name, nodes)
     nodes.append("\":")
   }
@@ -323,9 +323,9 @@ private final class FieldStreamingJsonWriter[T <: JWriter](name: String, isFirst
 
   def addAndQuoteNode(node: String): JsonWriter[T] = {
     writeName(hasPretty = false)
-    nodes.append("\"")
+    nodes.append('"')
     JsonAST.quote(node, nodes)
-    nodes.append("\"")
+    nodes.append('"')
     parent
   }
 }
@@ -337,7 +337,7 @@ private final class ObjectStreamingJsonWriter[T <: JWriter](protected[this] val 
 
   def addNode(node: String): JsonWriter[T] = {
     if (isFirst) isFirst = false
-    else nodes.write(",")
+    else nodes.write(',')
     nodes write node
     this
   }
@@ -351,10 +351,10 @@ private final class ObjectStreamingJsonWriter[T <: JWriter](protected[this] val 
 
   def addAndQuoteNode(node: String): JsonWriter[T] = {
     if (isFirst) isFirst = false
-    else nodes.append(",")
-    nodes.append("\"")
+    else nodes.append(',')
+    nodes.append('"')
     JsonAST.quote(node, nodes)
-    nodes.append("\"")
+    nodes.append('"')
     this
   }
 
@@ -367,8 +367,8 @@ private final class ObjectStreamingJsonWriter[T <: JWriter](protected[this] val 
 
   override def startObject(): JsonWriter[T] =
     sys.error("You have to start a field to be able to end it (startObject called before startField in a JObject builder)")
-  
-  
+
+
   override def string(value: String): JsonWriter[T] =
     sys.error("You have to start a field to be able to end it (string called before startField in a JObject builder)")
 
@@ -443,9 +443,9 @@ private final class ArrayStreamingJsonWriter[T <: JWriter](protected[this] val n
 
   def addAndQuoteNode(node: String): JsonWriter[T] = {
     writeComma()
-    nodes.append("\"")
+    nodes.append('"')
     JsonAST.quote(node, nodes)
-    nodes.append("\"")
+    nodes.append('"')
     this
   }
 }
@@ -460,9 +460,9 @@ private final class RootStreamingJsonWriter[T <: JWriter](protected[this] val no
 
 
   final def addAndQuoteNode(node: String): JsonWriter[T] = {
-    nodes.append("\"")
+    nodes.append('"')
     JsonAST.quote(node, nodes)
-    nodes.append("\"")
+    nodes.append('"')
     this
   }
 

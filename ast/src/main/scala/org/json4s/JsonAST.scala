@@ -181,24 +181,27 @@ object JsonAST {
 
   private[json4s] def quote(s: String): String = quote(s, new StringBuilderAppender(new StringBuilder)).toString
   private[json4s] def quote(s: String, writer: java.io.Writer): java.io.Writer = quote(s, new StringWriterAppender(writer))
-  private[this] def quote[T](s: String, appender: StringAppender[T]): T = { // hot path
-    var i = 0
+  private[this] def quote[T](s: String, writer: StringAppender[T]): T = { // hot path
+    var i: Int = 0
+    var begin = 0
     val l = s.length
+
     while(i < l) {
-      val c = s(i)
-      if (c == '"') appender.append("\\\"")
-      else if (c == '\\') appender.append("\\\\")
-      else if (c == '\b') appender.append("\\b")
-      else if (c == '\f') appender.append("\\f")
-      else if (c == '\n') appender.append("\\n")
-      else if (c == '\r') appender.append("\\r")
-      else if (c == '\t') appender.append("\\t")
+      val c = s.charAt(i)
+      if(c == '"')       { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\\"") }
+      else if(c == '\\') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\\\") }
+      else if(c == '\b') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\b")  }
+      else if(c == '\f') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\f")  }
+      else if(c == '\n') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\n")  }
+      else if(c == '\r') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\r")  }
+      else if(c == '\t') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\t")  }
       else if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100'))
-        appender.append("\\u%04x".format(c: Int))
-      else appender.append(c.toString)
-      i += 1
+        { writer.append(s.substring(begin,i)); begin = i+1;  writer.append("\\u%04x".format(c: Int)) }
+
+      i+=1
     }
-    appender.subj
+    writer.append(s.substring(begin,i))
+    writer.subj
   }
 }
 
