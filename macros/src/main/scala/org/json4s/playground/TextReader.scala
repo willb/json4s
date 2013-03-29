@@ -9,7 +9,7 @@ import collection.mutable.ListBuffer
  * Created on 3/25/13 at 8:37 PM
  */
 
-final class TextObjectReader(cursor: TextCursor) extends JsonObjectReader {
+final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader {
 
   override def equals(other: Any) = other match {
     case other: TextObjectReader => this.fields == other.fields
@@ -100,7 +100,7 @@ final class TextObjectReader(cursor: TextCursor) extends JsonObjectReader {
   })
 }
 
-final class TextArrayIterator(cursor: TextCursor) extends JsonArrayIterator {
+final class TextArrayIterator(cursor: JsonTextCursor) extends JsonArrayIterator {
 
   override def equals(other: Any) = other match {
     case other: TextArrayIterator => this.fields == other.fields
