@@ -8,7 +8,9 @@ package playground
 
 class InvalidStructure(msg: String, value: JsonReader) extends org.json4s.ParserUtil.ParseException(msg + value.getClass().toString, null)
 
-sealed trait JsonReader
+sealed trait JsonReader {
+  def fail(msg: String) = throw new java.lang.IllegalStateException(msg)
+}
 
 trait JsonObjectReader extends JsonReader {
   def getKeys: Seq[String]
