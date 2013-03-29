@@ -15,25 +15,12 @@ class TextReaderSpec extends Specification {
 
 
   "TextReader" should {
-//    "Find next object" in {
-//      (new JsonTextCursor(json)).findNextObject() must_==
-//        """ "cats": 34, "dogs": { "cats": true, "fish": [1, "cats", [1, 2, 3]] } """
-//    }
-//
-//    "Recursively find next object" in {
-//      val r1 = new JsonTextCursor(json)
-//      val str = r1.findNextObject()
-//      str must_== """ "cats": 34, "dogs": { "cats": true, "fish": [1, "cats", [1, 2, 3]] } """
-//
-//      val r2 = new JsonTextCursor(str)
-//      r2.findNextObject() must_== """ "cats": true, "fish": [1, "cats", [1, 2, 3]] """
-//    }
-//
-//    "Find next array" in {
-//      val cursor = new JsonTextCursor(json)
-//        cursor.findNextArray() must_== """1, "cats", [1, 2, 3]"""
-//        cursor.remainder must_== " } }"
-//    }
+    "Find next object" in {
+      val r1 = new JsonTextCursor(json)
+      val abj = r1.extractField()
+      abj must beAnInstanceOf[JsonObject]
+      r1.remainder must_== ""
+    }
 
     "Find next string" in {
       val cursor = new JsonTextCursor(""""Hello world" """)
@@ -85,44 +72,46 @@ class TextReaderSpec extends Specification {
       r2.remainder must_== ", "
     }
 
-//    "break down an object" in {
-//      val reader = new TextObjectReader(json.substring(1, json.length-1))
-//      reader.fields must_==
-//        ("cats", JsonNumber("34"))::
-//          ("dogs", JsonObject(""" "cats": true, "fish": [1, "cats", [1, 2, 3]] """))::Nil
-//
-//      val reader2 = new TextObjectReader(""" "ca[]ts": true, "fi{sh": [1, "cats", [1, 2, 3]] """)
-//      reader2.fields must_==
-//        ("ca[]ts", JsonBool(true))::
-//          ("fi{sh", JsonArray("""1, "cats", [1, 2, 3]"""))::Nil
-//    }
-//
-//    "break down an array" in {
-//      val reader = new TextArrayIterator(new JsonTextCursor("""[ 3, false, { "cat": "cool" }, [ 1, 2]] """))
-//      reader.nextInt must_== 3
-//      reader.nextBool must_== false
-//      reader.nextObjectReader.asInstanceOf[TextObjectReader].fields must_== ("cat", reader.JsonString("cool") )::Nil
-//      val r2 = reader.nextArrayReader
-//      r2.nextInt must_== 1
-//      r2.nextInt must_== 2
-//    }
+    "break down an object" in {
+      val reader = JsonTextReader.bindText(json)
+      reader.asInstanceOf[TextObjectReader].fields must_==
+        ("cats", JsonNumber("34"))::
+        ("dogs", JsonObject(new TextObjectReader(new JsonTextCursor(
+          """{ "cats": true, "fish": [1, "cats", [1, 2, 3]]} """
+        ))))::Nil
+
+      val reader2 = JsonTextReader.bindText("""{ "ca[]ts": true, "fi{sh": [1, "cats", [1, 2, 3]] }""")
+      reader2.asInstanceOf[TextObjectReader].fields must_==
+        ("ca[]ts", JsonBool(true))::
+          ("fi{sh", JsonArray(JsonTextReader.bindText("""[1, "cats", [1, 2, 3]]""").asInstanceOf[TextArrayIterator]))::Nil
+    }
+
+    "break down an array" in {
+      val reader = new TextArrayIterator(new JsonTextCursor("""[ 3, false, { "cat": "cool" }, [ 1, 2]] """))
+      reader.nextInt must_== 3
+      reader.nextBool must_== false
+      reader.nextObjectReader.asInstanceOf[TextObjectReader].fields must_== ("cat", JsonString("cool") )::Nil
+      val r2 = reader.nextArrayReader
+      r2.nextInt must_== 1
+      r2.nextInt must_== 2
+    }
   }
 
-  "TextReader helpers" should {
+  "JsonTextReader helpers" should {
     "Extract an object" in {
-      val r = TextReader.bindText(json)
+      val r = JsonTextReader.bindText(json)
       r must beAnInstanceOf[TextObjectReader]
       //r.asInstanceOf[TextObjectReader].remainder must_== ""
     }
 
     "Extract an array" in {
-      val r = TextReader.bindText("""[1, "cats", [1, 2, 3]]""")
+      val r = JsonTextReader.bindText("""[1, "cats", [1, 2, 3]]""")
       r must beAnInstanceOf[TextArrayIterator]
      // r.asInstanceOf[TextArrayIterator].remainder must_== "1, \"cats\", [1, 2, 3]"
     }
   }
 
-  "TextReader with Macro serializer" should {
+  "JsonTextReader with Macro serializer" should {
     import org.json4s.Macros
     implicit val defaultFormats = DefaultFormats
 

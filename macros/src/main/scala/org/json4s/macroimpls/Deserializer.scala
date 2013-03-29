@@ -17,7 +17,7 @@ object Deserializer {
   def read[U](str: String)(implicit defaultFormats: Formats) = macro read_impl[U]
   def read_impl[U: c.WeakTypeTag](c: Context)(str: c.Expr[String])(defaultFormats: c.Expr[Formats]): c.Expr[U] = {
     import c.universe._
-    val reader = reify (playground.TextReader.bindText(str.splice))
+    val reader = reify (playground.JsonTextReader.bindText(str.splice))
     deserialize_impl[U](c)(reader)(defaultFormats)
   }
 
