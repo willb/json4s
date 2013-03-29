@@ -169,5 +169,6 @@ object JsonAST {
     def apply(name: String, value: JValue) = (name, value)
     def unapply(f: JField): Option[(String, JValue)] = Some(f)
   }
+
 }
 
