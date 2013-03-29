@@ -175,20 +175,23 @@ object JsonAST {
   private[json4s] def quote(s: String): String = quote(s, new StringWriter()).toString
   private[json4s] def quote(s: String, writer: java.io.Writer): java.io.Writer = {
     var i: Int = 0
+    var begin = 0
+
     while(i < s.length) {
       val c = s.charAt(i)
-      if(c == '"') writer.append("\\\"")
-      else if(c == '\\') writer.append("\\\\")
-      else if(c == '\b') writer.append("\\b")
-      else if(c == '\f') writer.append("\\f")
-      else if(c == '\n') writer.append("\\n")
-      else if(c == '\r') writer.append("\\r")
-      else if(c == '\t') writer.append("\\t")
-      else if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100')) writer.append("\\u%04x".format(c: Int))
-      else writer.append(c)
+      if(c == '"')       { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\\"") }
+      else if(c == '\\') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\\\") }
+      else if(c == '\b') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\b")  }
+      else if(c == '\f') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\f")  }
+      else if(c == '\n') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\n")  }
+      else if(c == '\r') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\r")  }
+      else if(c == '\t') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\t")  }
+      else if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100'))
+        { writer.append(s.substring(begin,i)); begin = i+1;  writer.append("\\u%04x".format(c: Int)) }
+
       i+=1
     }
-    writer
+    writer.append(s.substring(begin,i))
   }
 }
 

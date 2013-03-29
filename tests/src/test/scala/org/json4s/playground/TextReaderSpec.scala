@@ -146,4 +146,11 @@ class TextReaderSpec extends Specification {
       Macros.read[List[Simple]](json) must_== Simple(1, true)::Simple(11, false)::Nil
     }
   }
+
+  "JsonAST" should {
+    "Escape a string properly" in {
+      val str = "He\tllo \" world!"
+      JsonAST.quote(str) must_== "He\\tllo \\\" world!"
+    }
+  }
 }
