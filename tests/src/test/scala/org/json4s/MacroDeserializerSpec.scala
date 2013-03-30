@@ -10,7 +10,7 @@ import playground._
 case class Junk(in1:Int, in2:String)
 case class MutableJunk(var in1:Int,var in2:String)
 case class MutableJunkWithField(var in1:Int) {
-  var in2:String = ""
+  var in2:String = _
 }
 case class ThingWithJunk(name:String, junk:Junk)
 case class Crazy(name:String,thg:ThingWithJunk)
@@ -161,7 +161,7 @@ class MacroDeserializerSpec extends Specification {
 
     "Generate a JunkWithDefault without a value" in {
       var expected = JunkWithDefault(refJunk.in1)
-      val params: JObject = ("in1" -> 2)    // TODO: causes problems if not explicitly wrapped as JObject
+      val params: JObject = ("in1" -> 2)
       deserialize[JunkWithDefault](AstReader(params)) must_== expected
     }
 
@@ -292,7 +292,7 @@ class MacroDeserializerSpec extends Specification {
 
     "Throw ParseException with a bad map value for 'in'" in {
       val params: JValue = ("in1" -> "2ffds") ~ ("in2" -> "cats")
-      deserialize[Junk](AstReader(params)) must throwA[ParseException]
+      deserialize[Junk](AstReader(params)) must throwA[MappingException]
     }
   }
 }

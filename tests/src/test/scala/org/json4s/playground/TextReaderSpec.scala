@@ -14,7 +14,7 @@ class TextReaderSpec extends Specification {
 
 
 
-  "TextReader" should {
+  "JsonTextCursor" should {
     "Find next object" in {
       val r1 = new JsonTextCursor(json)
       val abj = r1.extractField()
@@ -94,6 +94,25 @@ class TextReaderSpec extends Specification {
       val r2 = reader.nextArrayReader
       r2.nextInt must_== 1
       r2.nextInt must_== 2
+    }
+
+    "Throw a ParseException on bad json" in {
+      case class Simple(one: Int, two: Boolean)
+      val json =  """[{"one": 1, "two": true}, "one": 11, "two": false}]"""
+      (new TextArrayIterator(new JsonTextCursor(json))) must throwA[ParserUtil.ParseException]
+    }
+
+    "Throw a MappingException on wrong type of json" in {
+      case class Simple(one: Int, two: Boolean)
+      val json =  """[{"one": 1, "two": true}, "one": 11, "two": false}]"""
+      (new TextObjectReader(new JsonTextCursor(json))) must throwA[MappingException]
+    }
+
+
+    "Throw a ParseException on bad json" in {
+      case class Simple(one: Int, two: Boolean)
+      val json =  """{"one": 1, "two": gtrue}"""
+      (new TextObjectReader(new JsonTextCursor(json))) must throwA[ParserUtil.ParseException]
     }
   }
 

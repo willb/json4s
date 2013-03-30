@@ -10,7 +10,6 @@ class MacroHelpers[C <: Context](val c1: C) {
   import c1.universe._
   
   def LIT[B](x: B) = c1.Expr[B](Literal(Constant(x)))
-  def CONCAT(a: c1.Expr[String], b: c1.Expr[String]) = reify{a.splice + b.splice}
   
   // For building objects that take type parameters
   def typeArgumentTree(t: c1.Type): c1.Tree = t match {

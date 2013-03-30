@@ -3,7 +3,9 @@ package org.json4s.macroimpls
 import language.experimental.macros
 import scala.reflect.macros.Context
 import scala.Some
-import org.json4s.playground.{JsonReader, JsonObjectReader, JsonArrayIterator, InvalidStructure}
+import org.json4s.playground.{JsonReader, JsonObjectReader, JsonArrayIterator}
+
+import org.json4s.MappingException
 
 
 object Deserializer {
@@ -106,17 +108,6 @@ object Deserializer {
       else if (tpe =:= typeOf[Float])         reify { reader.splice.nextFloat }.tree
       else if (tpe =:= typeOf[Double])         reify { reader.splice.nextDouble }.tree
       else if (tpe =:= typeOf[String])         reify { reader.splice.nextString }.tree
-      // TODO: Does it make sense to have options in arrays?
-//      else if (tpe.erasure <:< typeOf[Option[_]]) {
-//        val TypeRef(_, _, List(argTpe)) = tpe
-//        reify{
-//          try{
-//            Some(c.Expr(buildCell(argTpe, reader)).splice)
-//          } catch {
-//            case _: Throwable => None
-//          }
-//        }.tree
-//      }
       else if (typeOf[List[_]] <:< tpe.erasure) buildList(tpe, reify{reader.splice.nextArrayReader})
       else if (typeOf[Map[_, _]] <:< tpe.erasure) {
         val orNme = c.fresh("jsonReader$")
@@ -187,7 +178,6 @@ object Deserializer {
 
     // The really heavyweight function. Most of the magic happens in the last else statement
     def buildObject(tpe: Type, reader: c.Expr[JsonObjectReader]): Tree = {
-      // TODO: need to build a new JsonObjectReader
       val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = tpe
       val ctorParams = tpe.member(nme.CONSTRUCTOR).asMethod.paramss
 
@@ -223,7 +213,7 @@ object Deserializer {
               try {
                 c.Expr(buildField(pTpe, fieldName, orExpr)).splice // splice in another obj tree
               } catch {
-                case _: Throwable =>
+                case e: MappingException =>
                   // Need to use the origional symbol.companionObj to get defaults
                   // Would be better to find the generated TermNames if possible
                   c.Expr(Select(Ident(sym.companionSymbol), newTermName(
@@ -245,8 +235,8 @@ object Deserializer {
           c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)),
           buildField(pTpe, compName, reader)
           )).splice
-          } catch { // Don't care if they fail
-            case _: InvalidStructure =>
+          } catch { // Don't care if they failStructure
+            case _: MappingException =>
           }
         }.tree
       }
@@ -262,7 +252,7 @@ object Deserializer {
       reify {
         reader.splice match {
           case r: JsonObjectReader => i.splice
-          case e => throw new InvalidStructure("Need reader type Object to read object fields", e)
+          case e => throw new IllegalStateException(s"Need reader type Object to read object fields. Found: ${e.getClass.toString}")
         }
       }
     }
@@ -271,7 +261,7 @@ object Deserializer {
       reify {
         reader.splice match {
           case r: JsonArrayIterator => i.splice
-          case e => throw new InvalidStructure("Need reader type Array to read object fields", e)
+          case e => throw new IllegalStateException(s"Need reader type Array to read object fields. Found: ${e.getClass.toString}")
         }
       }
     } else {
@@ -279,7 +269,7 @@ object Deserializer {
       reify {
         reader.splice match {
           case r: JsonObjectReader => i.splice
-          case e => throw new InvalidStructure("Need reader type Object to read object fields", e)
+          case e => throw new IllegalStateException(s"Need reader type Object to read object fields. Found: ${e.getClass.toString}")
         }
       }
     }

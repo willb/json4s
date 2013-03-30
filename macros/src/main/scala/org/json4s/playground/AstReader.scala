@@ -12,7 +12,7 @@ object AstReader {
   def apply(jv: JValue): JsonReader = jv match {
     case JObject(lst) => new AstObjectReader(lst)
     case JArray(lst) => new AstArrayIterator(lst)
-    case e => throw new InvalidStructure(s"JValue '$e' is not of type JObject or JArray", null)
+    case e => throw new java.lang.IllegalStateException(s"JValue '$e' is not of type JObject or JArray")
   }
 }
 
@@ -36,55 +36,55 @@ final class AstObjectReader(lst: List[JField]) extends JsonObjectReader {
 
   override def getObjectReader(key: String): JsonObjectReader = getField(key) match {
     case JObject(fields) => new AstObjectReader(fields)
-    case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Object", this)
+    case _ => failStructure(s"Object doesn't have field named '$key' with type Object")
   }
 
   override def getArrayReader(key: String): JsonArrayIterator = getField(key) match {
     case JArray(arr) => new AstArrayIterator(arr)
-    case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Array", this)
+    case _ => failStructure(s"Object doesn't have field named '$key' with type Array", this)
   }
 
   override def getInt(key: String): Int = getField(key) match {
     case JInt(i) => i.toInt
-    case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Int", this)
+    case _ => failStructure(s"Object doesn't have field named '$key' with type Int", this)
   }
 
   override def getLong(key: String): Long = getField(key) match {
     case JInt(i) => i.toLong
-    case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Long", this)
+    case _ => failStructure(s"Object doesn't have field named '$key' with type Long", this)
   }
 
   override def getFloat(key: String): Float = getField(key) match {
     case JDouble(i) => i.asInstanceOf[Float]
     case JDecimal(i)=> i.toFloat
-    case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Float", this)
+    case _ => failStructure(s"Object doesn't have field named '$key' with type Float", this)
   }
 
   override def getDouble(key: String): Double = getField(key) match {
     case JDouble(i) => i
     case JDecimal(i)=> i.toDouble
-    case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Double", this)
+    case _ => failStructure(s"Object doesn't have field named '$key' with type Double", this)
   }
 
   override def getBigInt(key: String): BigInt = getField(key) match {
     case JInt(i) => i
-    case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type BigInt", this)
+    case _ => failStructure(s"Object doesn't have field named '$key' with type BigInt", this)
   }
 
   override def getBigDecimal(key: String): BigDecimal = getField(key) match {
     case JDecimal(i) => i
     case JDouble(i)  => BigDecimal(i)
-    case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type BigDecimal", this)
+    case _ => failStructure(s"Object doesn't have field named '$key' with type BigDecimal", this)
   }
 
   override def getBool(key: String): Boolean = getField(key) match {
     case JBool(i) => i
-    case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Boolean", this)
+    case _ => failStructure(s"Object doesn't have field named '$key' with type Boolean", this)
   }
 
   override def getString(key: String): String = getField(key) match {
     case JString(i) => i
-    case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type String", this)
+    case _ => failStructure(s"Object doesn't have field named '$key' with type String", this)
   }
 
   // Option forms
@@ -212,55 +212,55 @@ final class AstArrayIterator(private var current: List[JValue]) extends JsonArra
   // Pure forms
   override def nextObjectReader(): JsonObjectReader = next() match {
     case JObject(lst) => new AstObjectReader(lst)
-    case _ => throw new InvalidStructure(s"Array doesn't have next field of type Object", this)
+    case _ => failStructure(s"Array doesn't have next field of type Object", this)
   }
 
   override def nextArrayReader(): JsonArrayIterator = next() match {
     case JArray(lst) => new AstArrayIterator(lst)
-    case e => throw new InvalidStructure(s"Array doesn't have next field of type Array: $e", this)
+    case e => failStructure(s"Array doesn't have next field of type Array: $e", this)
   }
 
   override def nextInt(): Int = next() match {
     case JInt(i) => i.toInt
-    case _ => throw new InvalidStructure(s"Array doesn't have next field of type Int", this)
+    case _ => failStructure(s"Array doesn't have next field of type Int", this)
   }
 
   override def nextLong(): Long = next() match {
     case JInt(i) => i.toLong
-    case _ => throw new InvalidStructure(s"Array doesn't have next field of type Long", this)
+    case _ => failStructure(s"Array doesn't have next field of type Long", this)
   }
 
   override def nextDouble(): Double = next() match {
     case JDouble(i)  => i
     case JDecimal(i) => i.toDouble
-    case _ => throw new InvalidStructure(s"Array doesn't have next field of type Double", this)
+    case _ => failStructure(s"Array doesn't have next field of type Double", this)
   }
 
   override def nextFloat(): Float = next() match {
     case JDouble(i)  => i.asInstanceOf[Float]
     case JDecimal(i) => i.toFloat
-    case _ => throw new InvalidStructure(s"Array doesn't have next field of type Float", this)
+    case _ => failStructure(s"Array doesn't have next field of type Float", this)
   }
 
   override def nextBigInt(): BigInt = next() match {
     case JInt(i) => i
-    case _ => throw new InvalidStructure(s"Array doesn't have next field of type BigInt", this)
+    case _ => failStructure(s"Array doesn't have next field of type BigInt", this)
   }
 
   override def nextBigDecimal(): BigDecimal = next() match {
     case JDecimal(i) => i
     case JDouble(i)  => BigDecimal(i)
-    case _ => throw new InvalidStructure(s"Array doesn't have next field of type BigDecimal", this)
+    case _ => failStructure(s"Array doesn't have next field of type BigDecimal", this)
   }
 
   override def nextBool(): Boolean = next() match {
     case JBool(i) => i
-    case _ => throw new InvalidStructure(s"Array doesn't have next field of type Boolean", this)
+    case _ => failStructure(s"Array doesn't have next field of type Boolean", this)
   }
 
   override def nextString(): String = next() match {
     case JString(i) => i
-    case _ => throw new InvalidStructure(s"Array doesn't have next field of type String", this)
+    case _ => failStructure(s"Array doesn't have next field of type String", this)
   }
 }
 
