@@ -8,7 +8,7 @@ import org.json4s.playground.{JsonReader, JsonObjectReader, JsonArrayIterator, I
 
 object Deserializer {
   import macrohelpers._
-  import PrimativeHelpers._
+  import PrimitiveHelpers._
   import org.json4s._
 
   import java.util.Date
@@ -64,7 +64,7 @@ object Deserializer {
         case a if a =:= typeOf[Float] => reify{kExpr.splice.toDouble}
         case a if a =:= typeOf[Double] => reify{kExpr.splice.toDouble}
         case a if a =:= typeOf[String] => reify{kExpr.splice}
-        case _ => c.abort(c.enclosingPosition, "Map must contain primative types as keys!")
+        case _ => c.abort(c.enclosingPosition, "Map must contain primitive types as keys!")
       }
 
       reify {

@@ -1,7 +1,7 @@
 package org.json4s.macroimpls.macrohelpers
 
 
-object PrimativeHelpers {
+object PrimitiveHelpers {
   def optIdent[U](opt: Option[U]):Option[U] = opt
 }
 

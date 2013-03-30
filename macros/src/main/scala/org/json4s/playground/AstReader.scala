@@ -20,8 +20,8 @@ final class AstObjectReader(lst: List[JField]) extends JsonObjectReader {
   private def getField(name: String) = {
     @tailrec def inner(lst: List[JField]): JValue = lst match {
       case Nil => null
-      case h if h.head._1 == name => h.head._2
-      case h => inner(h.tail)
+      case (`name`, v) :: _ => v
+      case _ :: rest => inner(rest)
     }
     inner(lst)
   }
@@ -29,7 +29,7 @@ final class AstObjectReader(lst: List[JField]) extends JsonObjectReader {
   override def getKeys = {
     def buildKeys(fields: List[JField]): List[String] = fields match {
       case Nil => Nil
-      case field => field.head._1::buildKeys(field.tail)
+      case (k, _) :: rest => k :: buildKeys(rest)
     }
     buildKeys(lst)
   }
@@ -45,24 +45,24 @@ final class AstObjectReader(lst: List[JField]) extends JsonObjectReader {
   }
 
   override def getInt(key: String): Int = getField(key) match {
-    case JInt(i) => i.toInt
+    case JInt(i) => i.intValue()
     case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Int", this)
   }
 
   override def getLong(key: String): Long = getField(key) match {
-    case JInt(i) => i.toLong
+    case JInt(i) => i.longValue()
     case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Long", this)
   }
 
   override def getFloat(key: String): Float = getField(key) match {
-    case JDouble(i) => i.asInstanceOf[Float]
-    case JDecimal(i)=> i.toFloat
+    case JDouble(i) => i.toFloat
+    case JDecimal(i)=> i.floatValue()
     case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Float", this)
   }
 
   override def getDouble(key: String): Double = getField(key) match {
     case JDouble(i) => i
-    case JDecimal(i)=> i.toDouble
+    case JDecimal(i)=> i.doubleValue()
     case _ => throw new InvalidStructure(s"Object doesn't have field named '$key' with type Double", this)
   }
 
@@ -141,8 +141,6 @@ final class AstObjectReader(lst: List[JField]) extends JsonObjectReader {
     case _ => None
   }
 }
-
-
 
 final class AstArrayIterator(private var current: List[JValue]) extends JsonArrayIterator {
 

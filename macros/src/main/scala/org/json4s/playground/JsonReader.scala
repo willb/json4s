@@ -6,7 +6,7 @@ package playground
  * Created on 3/23/13 at 12:39 PM
  */
 
-class InvalidStructure(msg: String, value: JsonReader) extends org.json4s.ParserUtil.ParseException(msg + value.getClass().toString, null)
+class InvalidStructure(msg: String, value: JsonReader) extends ParserUtil.ParseException(msg + value.getClass.toString, null)
 
 sealed trait JsonReader {
   def fail(msg: String) = throw new java.lang.IllegalStateException(msg)

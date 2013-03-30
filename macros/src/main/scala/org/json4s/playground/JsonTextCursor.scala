@@ -1,4 +1,9 @@
-package org.json4s.playground
+package org.json4s
+package playground
+
+import collection.BitSet
+import java.nio.CharBuffer
+import annotation.switch
 
 /**
  * @author Bryce Anderson
@@ -12,7 +17,7 @@ object JsonTextReader {
     cursor.extractField() match {
       case JsonObject(obj) => obj
       case JsonArray(obj)  => obj
-      case e => throw new java.lang.IllegalStateException(s"Invalid starting json structure: $e")
+      case e => throw new InvalidStructure(s"Invalid starting json structure: $e", null)
     }
   }
 }
@@ -35,13 +40,16 @@ private[json4s] case class JsonNumber(str: String) extends JsonField {
 
 private[json4s] class JsonTextCursor(txt: String) { self =>
 
-  def isNumberChar(c: Char) = (Character.isDigit(c) || c == '.' || c == 'e' || c == 'E' || c == '-' || c == '+')
-  def isWhitespace(in: Char) = ( in == ' ' || in == '\r' || in == '\t' || in == '\n')
+  private[this] val numbers = BitSet((('0' to '9') ++ ".eE-+").map(_.toInt):_*)
+  private[this] val whiteSpace = BitSet(Seq(' ', '\r', '\t', '\n').map(_.toInt):_*)
 
-  private var current = 0
-  private val maxLength = txt.length
+  def isNumberChar(c: Char) = numbers contains c
+  def isWhitespace(in: Char) = whiteSpace contains in
 
-  def fail(msg: String) = throw new java.lang.IllegalStateException(msg)
+  private[this] var current = 0
+  private[this] val maxLength = txt.length
+
+  def fail(msg: String, cause: Exception = null) = throw new ParserUtil.ParseException(msg, cause)
 
   def empty = (current >= maxLength)
 
@@ -54,23 +62,28 @@ private[json4s] class JsonTextCursor(txt: String) { self =>
     var begin = current + 1
     var end = begin
 
-    var builder: StringBuilder = null
+
+    var builder: CharBuffer = null
     var chr = txt.charAt(end)
     while(chr != '"') {
       if(txt.charAt(end) == '\\') {
-        if (builder == null) builder = new StringBuilder(txt.length)
+        if (builder == null) builder = CharBuffer.allocate(txt.size * 2)
 
         builder.append(txt.substring(begin, end))
         end +=1
-        txt.charAt(end) match {
-          case c if(c == '"' || c == '\\' || c == '/') => builder.append(c)
-          case c if (c == 'b') => builder.append("\b")
-          case c if (c == 'f') => builder.append("\f")
-          case c if (c == 'n') => builder.append("\n")
-          case c if (c == 'r') => builder.append("\r")
-          case c if (c == 't') => builder.append("\t")
-          case c if (c == 'u') => { builder.append(Integer.parseInt(txt.substring(end+1, end+5), 16).toChar); end +=4 }
-          case c => fail(s"Bad escaped character: '$c'. Remainder: ${remainder}")
+        (txt.charAt(end): @switch) match {
+          case '"' => builder.append('"')
+          case '\\' => builder.append('\\')
+          case '/' => builder.append('/')
+          case 'b' => builder.append('\b')
+          case 'f' => builder.append('\f')
+          case 'n' => builder.append('\n')
+          case 'r' => builder.append('\r')
+          case 't' => builder.append('\t')
+          case 'u' =>
+            builder.append(Integer.parseInt(txt.substring(end+1, end+5), 16).toChar)
+            end += 4
+          case c => fail(s"Bad escaped character: '$c'. Remainder: $remainder")
         }
         begin = end + 1
       }
@@ -87,7 +100,7 @@ private[json4s] class JsonTextCursor(txt: String) { self =>
     else {
       current = end + 1
       if (begin < end) builder.append(txt.substring(begin, end))
-      JsonString(builder.result())
+      JsonString(builder.flip().toString)
     }
   }
 
@@ -116,20 +129,13 @@ private[json4s] class JsonTextCursor(txt: String) { self =>
   }
 
   def findNextBoolean(): JsonBool = {
-    if (txt.charAt(current)     == 't' &&
-      txt.charAt(current + 1) == 'r' &&
-      txt.charAt(current + 2) == 'u' &&
-      txt.charAt(current + 3) == 'e') {
+    if (txt.substring(0, 4) == "true"){
       current = current + 4
-      JsonBool(true)
+      JsonBool(v = true)
     }
-    else if ( txt.charAt(current)     == 'f' &&
-      txt.charAt(current + 1) == 'a' &&
-      txt.charAt(current + 2) == 'l' &&
-      txt.charAt(current + 3) == 's' &&
-      txt.charAt(current + 4) == 'e') {
+    else if ( txt.substring(0, 5) == "false") {
       current = current + 5
-      JsonBool(false)
+      JsonBool(v = false)
     }
     else fail(s"Next token is not of type boolean: ${txt.substring(current)}")
   }
@@ -137,16 +143,35 @@ private[json4s] class JsonTextCursor(txt: String) { self =>
   def extractField(): JsonField =
     if(maxLength == current) {
       fail(s"Tried to extract field that doesn't exist!")
-    } else txt.charAt(current) match {
-      case '"'                    => findNextString()
-      case '{'                    => JsonObject(new TextObjectReader(self))
-      case '['                    => JsonArray(new TextArrayIterator(self))
-      case c if (isNumberChar(c)) => findNextNumber()
-      case c if(c == 't' || c == 'f') => findNextBoolean()
-      case 'n' if (txt.charAt(current + 1) == 'u' && txt.charAt(current + 2) == 'l' && txt.charAt(current + 3) == 'l') =>
-        current += 4
-        Null
+    } else {
+      (txt.charAt(current): @switch) match {
+        case '"' => findNextString()
+        case '{' => JsonObject(new TextObjectReader(self))
+        case '[' => JsonArray(new TextArrayIterator(self))
+        case '0' => findNextNumber()
+        case '1' => findNextNumber()
+        case '2' => findNextNumber()
+        case '3' => findNextNumber()
+        case '4' => findNextNumber()
+        case '5' => findNextNumber()
+        case '6' => findNextNumber()
+        case '7' => findNextNumber()
+        case '8' => findNextNumber()
+        case '9' => findNextNumber()
+        case '.' => findNextNumber()
+        case 'e' => findNextNumber()
+        case 'E' => findNextNumber()
+        case '-' => findNextNumber()
+        case '+' => findNextNumber()
+        case 't' => findNextBoolean()
+        case 'f' => findNextBoolean()
+        case 'n' =>
+          if (txt.charAt(current + 1) == 'u' && txt.charAt(current + 2) == 'l' && txt.charAt(current + 3) == 'l') {
+            current += 4
+            Null
+          } else fail(s"Failed to extract field from remaining json: ${txt.substring(current)}")
 
-      case _ => fail(s"Failed to extract field from remaining json: ${txt.substring(current)}")
+        case _ => fail(s"Failed to extract field from remaining json: ${txt.substring(current)}")
+      }
     }
 }
