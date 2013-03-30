@@ -12,6 +12,9 @@ case class MutableJunk(var in1:Int,var in2:String)
 case class MutableJunkWithField(var in1:Int) {
   var in2:String = _
 }
+case class MutableJunkWithJunk(var in1: Int) {
+  var in2: Junk = Junk(0, "")
+}
 case class ThingWithJunk(name:String, junk:Junk)
 case class Crazy(name:String,thg:ThingWithJunk)
 case class WithOption(in:Int,opt:Option[String])
@@ -104,6 +107,26 @@ class MacroDeserializerSpec extends Specification {
       deserialize[MutableJunk](AstReader(refJunkDict)) must_== MutableJunk(2,"cats")
     }
 
+    "Generate a MutableJunkWithJunk with provided Junk" in {
+      val result = MutableJunkWithJunk(1)
+      result.in2 = Junk(0, "cats")
+      val json:JObject = ("in1" -> 1) ~ ("in2" -> (("in1" -> 0) ~("in2" -> "cats")): JObject)
+      deserialize[MutableJunkWithJunk](AstReader(json)) must_== result
+    }
+
+    "Generate a MutableJunkWithJunk with missing Junk" in {
+      val result = MutableJunkWithJunk(1)
+      val json:JObject = ("in1" -> 1)
+      deserialize[MutableJunkWithJunk](AstReader(json)) must_== result
+    }
+
+    "Generate a ThingWithJunk" in {
+      val expected = ThingWithJunk("Bob", Junk(2, "SomeJunk..."))
+      val stuff =("name" -> "Bob") ~ ("junk" -> ("in1" -> 2) ~ ("in2" -> expected.junk.in2))
+      val result = deserialize[ThingWithJunk](AstReader(stuff))
+      result must_== expected
+    }
+
     "Generate a MutableJunkWithField when field provided" in {
       val expected = MutableJunkWithField(2)
       expected.in2 = "cats"
@@ -116,13 +139,6 @@ class MacroDeserializerSpec extends Specification {
       val params = JObject(("in1" -> JInt(2))::Nil)
       deserialize[MutableJunkWithField](AstReader(params)) must_== expected
 
-    }
-
-    "Generate a ThingWithJunk" in {
-      val expected = ThingWithJunk("Bob", Junk(2, "SomeJunk..."))
-      val stuff =("name" -> "Bob") ~ ("junk" -> ("in1" -> 2) ~ ("in2" -> expected.junk.in2))
-      val result = deserialize[ThingWithJunk](AstReader(stuff))
-      result must_== expected
     }
 
     "Generate a 3 fold deap case class" in {

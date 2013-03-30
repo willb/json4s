@@ -230,7 +230,16 @@ object Deserializer {
         val pTpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
         val varName = pSym.name.toTermName.toString.trim
         val compName = LIT(varName)
-        reify{
+        // Use option if primitive, should be faster than exceptions.
+        if(helpers.isPrimitive(pTpe)) {
+          reify {
+            buildPrimativeOpt(pTpe, compName, orExpr).splice match {
+              case Some(x) => c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)), Ident("x"))).splice
+              case None =>
+            }
+          }.tree
+        }
+        else reify{
           try {
           c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)),
           buildField(pTpe, compName, reader)
