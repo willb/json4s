@@ -231,21 +231,31 @@ object Deserializer {
         val varName = pSym.name.toTermName.toString.trim
         val compName = LIT(varName)
         // Use option if primitive, should be faster than exceptions.
-        if(helpers.isPrimitive(pTpe)) {
-          reify {
-            buildPrimativeOpt(pTpe, compName, orExpr).splice match {
-              case Some(x) => c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)), Ident("x"))).splice
-              case None =>
-            }
-          }.tree
-        }
-        else reify{
-          try {
-          c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)),
-          buildField(pTpe, compName, reader)
-          )).splice
-          } catch { // Don't care if they failStructure
-            case _: MappingException =>
+        if(helpers.isPrimitive(pTpe)) reify {
+          buildPrimativeOpt(pTpe, compName, orExpr).splice match {
+            case Some(x) => c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)), Ident("x"))).splice
+            case None =>
+          }
+        }.tree
+        else if(typeOf[List[_]] <:< pTpe.erasure) reify {
+          reader.splice.optArrayReader(compName.splice) match {
+            case Some(x) => c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)),
+              buildList(pTpe,c.Expr[JsonArrayIterator](Ident("x"))))).splice
+            case None =>
+          }
+        }.tree
+        else if(typeOf[Map[_, _]] <:< pTpe.erasure) reify {
+          reader.splice.optObjectReader(compName.splice) match {
+            case Some(x) => c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)),
+              buildMap(pTpe,c.Expr[JsonObjectReader](Ident("x"))))).splice
+            case None =>
+          }
+        }.tree
+        else reify {
+          reader.splice.optObjectReader(compName.splice) match {
+            case Some(x) => c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)),
+              buildObject(pTpe,c.Expr[JsonObjectReader](Ident("x"))))).splice
+            case None =>
           }
         }.tree
       }

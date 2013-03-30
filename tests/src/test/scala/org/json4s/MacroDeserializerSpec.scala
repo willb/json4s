@@ -60,7 +60,7 @@ class MacroDeserializerSpec extends Specification {
   val refJunk = Junk(2,"cats")
   val refJunkDict: JValue = decompose(refJunk)
 
-  "Macros.deserialize" should {
+  "Macros.deserialize" should  {
 
     "Build a list of maps" in {
       val expected: List[Map[String, Int]] = Map("one" -> 1)::Map("two" -> 2)::Nil
@@ -107,6 +107,13 @@ class MacroDeserializerSpec extends Specification {
       deserialize[MutableJunk](AstReader(refJunkDict)) must_== MutableJunk(2,"cats")
     }
 
+    "Generate a ThingWithJunk" in {
+      val expected = ThingWithJunk("Bob", Junk(2, "SomeJunk..."))
+      val stuff =("name" -> "Bob") ~ ("junk" -> ("in1" -> 2) ~ ("in2" -> expected.junk.in2))
+      val result = deserialize[ThingWithJunk](AstReader(stuff))
+      result must_== expected
+    }
+
     "Generate a MutableJunkWithJunk with provided Junk" in {
       val result = MutableJunkWithJunk(1)
       result.in2 = Junk(0, "cats")
@@ -118,13 +125,6 @@ class MacroDeserializerSpec extends Specification {
       val result = MutableJunkWithJunk(1)
       val json:JObject = ("in1" -> 1)
       deserialize[MutableJunkWithJunk](AstReader(json)) must_== result
-    }
-
-    "Generate a ThingWithJunk" in {
-      val expected = ThingWithJunk("Bob", Junk(2, "SomeJunk..."))
-      val stuff =("name" -> "Bob") ~ ("junk" -> ("in1" -> 2) ~ ("in2" -> expected.junk.in2))
-      val result = deserialize[ThingWithJunk](AstReader(stuff))
-      result must_== expected
     }
 
     "Generate a MutableJunkWithField when field provided" in {
@@ -139,6 +139,36 @@ class MacroDeserializerSpec extends Specification {
       val params = JObject(("in1" -> JInt(2))::Nil)
       deserialize[MutableJunkWithField](AstReader(params)) must_== expected
 
+    }
+
+    "Generate a class with var List when field missing" in {
+      class VarList { var lst: List[Int] = List.empty }
+      val expected = new VarList()
+      val params = JObject(Nil)
+      deserialize[VarList](AstReader(params)).lst must_== expected.lst
+    }
+
+    "Generate a class with var List when field present" in {
+      class VarList { var lst: List[Int] = List.empty }
+      val expected = new VarList()
+      expected.lst = List(1,2)
+      val params: JObject = ("lst" -> List(1,2))
+      deserialize[VarList](AstReader(params)).lst must_== expected.lst
+    }
+
+    "Generate a class with var Map when field missing" in {
+      class VarMap { var lst: Map[String, Int] = Map.empty }
+      val expected = new VarMap()
+      val params = JObject(Nil)
+      deserialize[VarMap](AstReader(params)).lst must_== expected.lst
+    }
+
+    "Generate a class with var Map when field present" in {
+      class VarMap { var lst: Map[String, Int] = Map.empty }
+      val expected = new VarMap()
+      expected.lst = Map("hi" -> 1)
+      val params = ("lst" -> Map("hi" -> 1))
+      deserialize[VarMap](AstReader(params)).lst must_== expected.lst
     }
 
     "Generate a 3 fold deap case class" in {
