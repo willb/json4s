@@ -200,7 +200,6 @@ object JsonAST {
           if ((x >= '\u0000' && x < '\u001f') || (x >= '\u0080' && x < '\u00a0') || (x >= '\u2000' && x < '\u2100'))
             append("\\u%04x".format(x: Int))
       }
-
       i+=1
     }
     writer.append(s.substring(begin,i))

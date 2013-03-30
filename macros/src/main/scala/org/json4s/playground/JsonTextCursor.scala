@@ -1,4 +1,5 @@
-package org.json4s.playground
+package org.json4s
+package playground
 
 /**
  * @author Bryce Anderson
@@ -32,8 +33,14 @@ private[json4s] case class JsonNumber(str: String) extends JsonField {
   def toBigDecimal = BigDecimal(str)
 }
 
+trait CursorFailure {
+  def remainder: String
+  def failStructure(msg: String) = throw new MappingException(msg, null)
+  def failParse(msg: String) = throw new ParserUtil.ParseException(msg + "Remainder: " + remainder, null)
+}
 
-private[json4s] class JsonTextCursor(txt: String) { self =>
+
+private[json4s] class JsonTextCursor(txt: String) extends CursorFailure { self =>
 
   def isNumberChar(c: Char) = (Character.isDigit(c) || c == '.' || c == 'e' || c == 'E' || c == '-' || c == '+')
   def isWhitespace(in: Char) = ( in == ' ' || in == '\r' || in == '\t' || in == '\n')
@@ -41,7 +48,7 @@ private[json4s] class JsonTextCursor(txt: String) { self =>
   private var current = 0
   private val maxLength = txt.length
 
-  def fail(msg: String) = throw new java.lang.IllegalStateException(msg)
+
 
   def empty = (current >= maxLength)
 
@@ -50,7 +57,7 @@ private[json4s] class JsonTextCursor(txt: String) { self =>
   final def nextChar() = { current += 1; txt.charAt(current-1)}
 
   def findNextString(): JsonString = {
-    if(txt.charAt(current) != '"') fail(s"Failed to find string next in '$remainder'")
+    if(txt.charAt(current) != '"') failStructure(s"Failed to find string next in '$remainder'")
     var begin = current + 1
     var end = begin
 
@@ -70,7 +77,7 @@ private[json4s] class JsonTextCursor(txt: String) { self =>
           case c if (c == 'r') => builder.append("\r")
           case c if (c == 't') => builder.append("\t")
           case c if (c == 'u') => { builder.append(Integer.parseInt(txt.substring(end+1, end+5), 16).toChar); end +=4 }
-          case c => fail(s"Bad escaped character: '$c'. Remainder: ${remainder}")
+          case c => failParse(s"Bad escaped character: '$c'.")
         }
         begin = end + 1
       }
@@ -98,7 +105,7 @@ private[json4s] class JsonTextCursor(txt: String) { self =>
     trim()
     val chr = txt.charAt(current)
     if (chr == end) true
-    else if (chr != sep) fail(s"Separator '${txt.charAt(current)}' is not '$sep' or '$end'")
+    else if (chr != sep) failParse(s"Separator '${txt.charAt(current)}' is not '$sep' or '$end'")
     else {
       current += 1
       trim()
@@ -110,9 +117,12 @@ private[json4s] class JsonTextCursor(txt: String) { self =>
     var end = current
     while(end < maxLength && isNumberChar(txt.charAt(end))) end += 1
 
+    if(end == current) failStructure(s"Next token is not number: ${txt.charAt(end)}")
+    else {
     val str = txt.substring(current, end)
     current = end
     JsonNumber(str)
+    }
   }
 
   def findNextBoolean(): JsonBool = {
@@ -131,12 +141,12 @@ private[json4s] class JsonTextCursor(txt: String) { self =>
       current = current + 5
       JsonBool(false)
     }
-    else fail(s"Next token is not of type boolean: ${txt.substring(current)}")
+    else failStructure(s"Next token is not of type boolean: ${txt.substring(current, 5)}")
   }
 
   def extractField(): JsonField =
     if(maxLength == current) {
-      fail(s"Tried to extract field that doesn't exist!")
+      failStructure(s"Tried to extract field that doesn't exist!")
     } else txt.charAt(current) match {
       case '"'                    => findNextString()
       case '{'                    => JsonObject(new TextObjectReader(self))
@@ -147,6 +157,6 @@ private[json4s] class JsonTextCursor(txt: String) { self =>
         current += 4
         Null
 
-      case _ => fail(s"Failed to extract field from remaining json: ${txt.substring(current)}")
+      case _ => failParse(s"Cursor not at valid field.")
     }
 }
