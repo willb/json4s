@@ -1,15 +1,12 @@
 package org.json4s
 package playground
 
-import org.json4s.Meta._
 import org.json4s.MappingException
 
 /**
  * @author Bryce Anderson
  * Created on 3/23/13 at 12:39 PM
  */
-
-//class InvalidStructure(msg: String, value: JsonReader) extends org.json4s.ParserUtil.ParseException(msg + value.getClass().toString, null)
 
 sealed trait JsonReader {
   def failStructure(msg: String, thrower: JsonReader = null) = {
