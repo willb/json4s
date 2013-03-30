@@ -9,7 +9,9 @@ import collection.mutable.ListBuffer
  * Created on 3/25/13 at 8:37 PM
  */
 
-final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader {
+final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader with CursorFailure {
+
+  def remainder = cursor.remainder
 
   override def equals(other: Any) = other match {
     case other: TextObjectReader => this.fields == other.fields
@@ -17,7 +19,7 @@ final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader {
   }
 
   val fields: List[(String, JsonField)] = {
-    if(cursor.nextChar() != '{' ) fail(s"Json is not an object: ${cursor.remainder}")
+    if(cursor.nextChar() != '{' ) failStructure(s"Json is not an object: ${cursor.remainder}")
     cursor.trim()
 
     val builder = new collection.mutable.ListBuffer[(String, JsonField)]()
@@ -25,7 +27,7 @@ final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader {
     @tailrec
     def looper(): Unit = {
       val JsonString(key) = cursor.findNextString()
-      if (cursor.zoomPastSeparator(':', '}')) fail(s"Invalid json. Remainder: '${cursor.remainder}'")
+      if (cursor.zoomPastSeparator(':', '}')) failParse(s"Invalid json.")
       val value = cursor.extractField()
       builder += ((key, value))
       if(!cursor.zoomPastSeparator(',', '}')) {
@@ -33,7 +35,7 @@ final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader {
       }
     }
     looper()
-    if(cursor.nextChar() != '}' ) fail(s"Json object missing closing bracket.: ${cursor.remainder}")
+    if(cursor.nextChar() != '}' ) failParse(s"Json object missing closing bracket.")
     builder.result
   }
 
@@ -51,56 +53,58 @@ final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader {
   // Option forms
   def optObjectReader(key: String): Option[JsonObjectReader] = getField(key).map ( _ match {
     case JsonObject(reader) => reader
-    case e => fail(s"Field '$key' doesn't contain object: ${e.toString}")
+    case e => failStructure(s"Field '$key' doesn't contain object: ${e.toString}")
   })
 
   def optArrayReader(key: String): Option[JsonArrayIterator] = getField(key).map ( _ match {
     case JsonArray(reader) => reader
-    case e => fail(s"Field '$key' doesn't contain array: ${e.toString}")
+    case e => failStructure(s"Field '$key' doesn't contain array: ${e.toString}")
   })
 
   def optInt(key: String): Option[Int] = getField(key).map ( _ match {
     case n: JsonNumber => n.toInt
-    case e => fail(s"Field '$key' doesn't contain number: ${e.toString}")
+    case e => failStructure(s"Field '$key' doesn't contain number: ${e.toString}")
   })
 
   def optLong(key: String): Option[Long] = getField(key).map ( _ match {
     case n: JsonNumber => n.toLong
-    case e => fail(s"Field '$key' doesn't contain number: ${e.toString}")
+    case e => failStructure(s"Field '$key' doesn't contain number: ${e.toString}")
   })
 
   def optFloat(key: String): Option[Float] = getField(key).map ( _ match {
     case n: JsonNumber => n.toFloat
-    case e => fail(s"Field '$key' doesn't contain number: ${e.toString}")
+    case e => failStructure(s"Field '$key' doesn't contain number: ${e.toString}")
   })
 
   def optDouble(key: String): Option[Double] = getField(key).map ( _ match {
     case n: JsonNumber => n.toDouble
-    case e => fail(s"Field '$key' doesn't contain number: ${e.toString}")
+    case e => failStructure(s"Field '$key' doesn't contain number: ${e.toString}")
   })
 
   def optBigInt(key: String): Option[BigInt] = getField(key).map ( _ match {
     case n: JsonNumber => n.toBigInt
-    case e => fail(s"Field '$key' doesn't contain number: ${e.toString}")
+    case e => failStructure(s"Field '$key' doesn't contain number: ${e.toString}")
   })
 
   def optBigDecimal(key: String): Option[BigDecimal] = getField(key).map ( _ match {
     case n: JsonNumber => n.toBigDecimal
-    case e => fail(s"Field '$key' doesn't contain number: ${e.toString}")
+    case e => failStructure(s"Field '$key' doesn't contain number: ${e.toString}")
   })
 
   def optBool(key: String): Option[Boolean] = getField(key).map ( _ match {
     case JsonBool(v) => v
-    case e => fail(s"Field '$key' doesn't contain Boolean: ${e.toString}")
+    case e => failStructure(s"Field '$key' doesn't contain Boolean: ${e.toString}")
   })
 
   def optString(key: String): Option[String] = getField(key).map ( _ match {
     case JsonString(str) => str
-    case e => fail(s"Field '$key' doesn't contain number: ${e.toString}")
+    case e => failStructure(s"Field '$key' doesn't contain number: ${e.toString}")
   })
 }
 
-final class TextArrayIterator(cursor: JsonTextCursor) extends JsonArrayIterator {
+final class TextArrayIterator(cursor: JsonTextCursor) extends JsonArrayIterator with CursorFailure {
+
+  def remainder = cursor.remainder
 
   override def equals(other: Any) = other match {
     case other: TextArrayIterator => this.fields == other.fields
@@ -108,7 +112,7 @@ final class TextArrayIterator(cursor: JsonTextCursor) extends JsonArrayIterator 
   }
 
   var fields: List[JsonField] = {
-    if(cursor.nextChar() != '[' ) fail(s"Json is not an array: ${cursor.remainder}")
+    if(cursor.nextChar() != '[' ) failParse(s"Json is not an array.")
     cursor.trim()
     val builder = new ListBuffer[JsonField]
     @tailrec
@@ -118,12 +122,12 @@ final class TextArrayIterator(cursor: JsonTextCursor) extends JsonArrayIterator 
     }
 
     looper()
-    if(cursor.nextChar() != ']' ) fail(s"Json object missing closing bracket!: ${cursor.remainder}")
+    if(cursor.nextChar() != ']' ) failParse(s"Json object missing closing bracket.")
     builder.result()
   }
 
   private def nextField = {
-    if(fields.isEmpty) fail(s"TextArrayIterator is empty!")
+    if(fields.isEmpty) failStructure(s"TextArrayIterator is empty!")
     val value = fields.head
     fields = fields.tail
     value

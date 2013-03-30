@@ -1,15 +1,21 @@
 package org.json4s
 package playground
 
+import org.json4s.Meta._
+import org.json4s.MappingException
+
 /**
  * @author Bryce Anderson
  * Created on 3/23/13 at 12:39 PM
  */
 
-class InvalidStructure(msg: String, value: JsonReader) extends org.json4s.ParserUtil.ParseException(msg + value.getClass().toString, null)
+//class InvalidStructure(msg: String, value: JsonReader) extends org.json4s.ParserUtil.ParseException(msg + value.getClass().toString, null)
 
 sealed trait JsonReader {
-  def fail(msg: String) = throw new java.lang.IllegalStateException(msg)
+  def failStructure(msg: String, thrower: JsonReader = null) = {
+    val fullMessage = if(thrower != null) (msg.concat(" Thrower: " + thrower.getClass.toString())) else msg
+    throw new MappingException(fullMessage, null)
+  }
 }
 
 trait JsonObjectReader extends JsonReader {
@@ -29,25 +35,25 @@ trait JsonObjectReader extends JsonReader {
 
   // Direct forms with default impl based on the Option form
   def getObjectReader(key: String): JsonObjectReader =
-    optObjectReader(key).getOrElse(fail(s"JsonObject doesn't contain an object in field '$key'"))
+    optObjectReader(key).getOrElse(failStructure(s"JsonObject doesn't contain an object in field '$key'"))
   def getArrayReader(key: String): JsonArrayIterator =
-    optArrayReader(key).getOrElse(fail(s"JsonObject doesn't contain an array in field '$key'"))
+    optArrayReader(key).getOrElse(failStructure(s"JsonObject doesn't contain an array in field '$key'"))
   def getInt(key: String): Int =
-    optInt(key).getOrElse(fail(s"JsonObject doesn't contain an Int in field '$key'"))
+    optInt(key).getOrElse(failStructure(s"JsonObject doesn't contain an Int in field '$key'"))
   def getLong(key: String): Long =
-    optLong(key).getOrElse(fail(s"JsonObject doesn't contain an Long in field '$key'"))
+    optLong(key).getOrElse(failStructure(s"JsonObject doesn't contain an Long in field '$key'"))
   def getFloat(key: String): Float =
-    optFloat(key).getOrElse(fail(s"JsonObject doesn't contain a Float in field '$key'"))
+    optFloat(key).getOrElse(failStructure(s"JsonObject doesn't contain a Float in field '$key'"))
   def getDouble(key: String): Double =
-    optDouble(key).getOrElse(fail(s"JsonObject doesn't contain a Double in field '$key'"))
+    optDouble(key).getOrElse(failStructure(s"JsonObject doesn't contain a Double in field '$key'"))
   def getBigInt(key: String): BigInt =
-    optBigInt(key).getOrElse(fail(s"JsonObject doesn't contain a BigInt in field '$key'"))
+    optBigInt(key).getOrElse(failStructure(s"JsonObject doesn't contain a BigInt in field '$key'"))
   def getBigDecimal(key: String): BigDecimal =
-    optBigDecimal(key).getOrElse(fail(s"JsonObject doesn't contain a BigDecimal in field '$key'"))
+    optBigDecimal(key).getOrElse(failStructure(s"JsonObject doesn't contain a BigDecimal in field '$key'"))
   def getBool(key: String): Boolean =
-    optBool(key).getOrElse(fail(s"JsonObject doesn't contain a Boolean in field '$key'"))
+    optBool(key).getOrElse(failStructure(s"JsonObject doesn't contain a Boolean in field '$key'"))
   def getString(key: String): String =
-    optString(key).getOrElse(fail(s"JsonObject doesn't contain a string in field '$key'"))
+    optString(key).getOrElse(failStructure(s"JsonObject doesn't contain a string in field '$key'"))
 }
 
 trait JsonArrayIterator extends JsonReader {
@@ -67,23 +73,23 @@ trait JsonArrayIterator extends JsonReader {
   // Direct forms with default impl based on the option forms
   def hasNext: Boolean
   def nextObjectReader: JsonObjectReader =
-    getNextObjectReader.getOrElse(fail("JsonArray next value is not of type 'object'"))
+    getNextObjectReader.getOrElse(failStructure("JsonArray next value is not of type 'object'"))
   def nextArrayReader: JsonArrayIterator =
-    getNextArrayReader.getOrElse(fail("JsonArray next value is not of type 'array'"))
+    getNextArrayReader.getOrElse(failStructure("JsonArray next value is not of type 'array'"))
   def nextInt: Int =
-    getNextInt.getOrElse(fail("JsonArray next value is not of type 'Int'"))
+    getNextInt.getOrElse(failStructure("JsonArray next value is not of type 'Int'"))
   def nextLong: Long =
-    getNextLong.getOrElse(fail("JsonArray next value is not of type 'Long'"))
+    getNextLong.getOrElse(failStructure("JsonArray next value is not of type 'Long'"))
   def nextFloat: Float =
-    getNextFloat.getOrElse(fail("JsonArray next value is not of type 'Float'"))
+    getNextFloat.getOrElse(failStructure("JsonArray next value is not of type 'Float'"))
   def nextDouble: Double =
-    getNextDouble.getOrElse(fail("JsonArray next value is not of type 'Double'"))
+    getNextDouble.getOrElse(failStructure("JsonArray next value is not of type 'Double'"))
   def nextBigInt: BigInt =
-    getNextBigInt.getOrElse(fail("JsonArray next value is not of type 'BigInt'"))
+    getNextBigInt.getOrElse(failStructure("JsonArray next value is not of type 'BigInt'"))
   def nextBigDecimal: BigDecimal =
-    getNextBigDecimal.getOrElse(fail("JsonArray next value is not of type 'BigDecimal'"))
+    getNextBigDecimal.getOrElse(failStructure("JsonArray next value is not of type 'BigDecimal'"))
   def nextBool: Boolean =
-    getNextBool.getOrElse(fail("JsonArray next value is not of type 'Boolean'"))
+    getNextBool.getOrElse(failStructure("JsonArray next value is not of type 'Boolean'"))
   def nextString: String =
-    getNextString.getOrElse(fail("JsonArray next value is not of type 'String'"))
+    getNextString.getOrElse(failStructure("JsonArray next value is not of type 'String'"))
 }

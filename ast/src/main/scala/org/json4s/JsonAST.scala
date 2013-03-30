@@ -177,17 +177,19 @@ object JsonAST {
     var i: Int = 0
     var begin = 0
 
+    def writeStr(chr: String) = { writer.append(s.substring(begin,i)); begin = i+1; writer.append(chr) }
+
     while(i < s.length) {
       val c = s.charAt(i)
-      if(c == '"')       { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\\"") }
-      else if(c == '\\') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\\\") }
-      else if(c == '\b') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\b")  }
-      else if(c == '\f') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\f")  }
-      else if(c == '\n') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\n")  }
-      else if(c == '\r') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\r")  }
-      else if(c == '\t') { writer.append(s.substring(begin,i)); begin = i+1; writer.append("\\t")  }
+      if     (c == '"')  writeStr("\\\"")
+      else if(c == '\\') writeStr("\\\\")
+      else if(c == '\b') writeStr("\\b")
+      else if(c == '\f') writeStr("\\f")
+      else if(c == '\n') writeStr("\\n")
+      else if(c == '\r') writeStr("\\r")
+      else if(c == '\t') writeStr("\\t")
       else if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100'))
-        { writer.append(s.substring(begin,i)); begin = i+1;  writer.append("\\u%04x".format(c: Int)) }
+                         writeStr("\\u%04x".format(c: Int))
 
       i+=1
     }
