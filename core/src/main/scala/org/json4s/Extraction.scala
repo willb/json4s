@@ -262,7 +262,8 @@ object Extraction {
         if (value.charAt(0).isDigit) {
           if (value.indexOf('.') == -1) JInt(BigInt(value))
           else {
-            if (!useBigDecimalForDouble) JDouble(ParserUtil.parseDouble(value))
+//            if (!useBigDecimalForDouble) JDouble(ParserUtil.parseDouble(value))
+            if (!useBigDecimalForDouble) JDouble(value.toDouble)
             else JDecimal(BigDecimal(value))
           }
         }
@@ -502,7 +503,7 @@ object Extraction {
 
   private[this] def convert(json: JValue, target: ScalaType, formats: Formats, default: Option[() => Any]): Any = {
     val targetType = target.erasure
-    json match {
+    json match { // TODO (perf): Convert to if statements
       case JInt(x) if (targetType == classOf[Int]) => x.intValue
       case JInt(x) if (targetType == classOf[JavaInteger]) => new JavaInteger(x.intValue)
       case JInt(x) if (targetType == classOf[BigInt]) => x

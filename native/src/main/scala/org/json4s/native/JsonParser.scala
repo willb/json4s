@@ -216,7 +216,7 @@ object JsonParser {
           ParserUtil.unquote(buf)
         } catch {
           case p: ParseException => throw p
-          case _ => fail("unexpected string end")
+          case _: Throwable => fail("unexpected string end")
         }
 
       def parseValue(first: Char) = {
@@ -236,63 +236,63 @@ object JsonParser {
         }
         val value = s.toString
         if (doubleVal) {
-          if (useBigDecimalForDouble) { BigDecimalVal(BigDecimal(value)) } else { DoubleVal(parseDouble(value)) }
+//          if (useBigDecimalForDouble) { BigDecimalVal(BigDecimal(value)) } else { DoubleVal(parseDouble(value)) }
+          if (useBigDecimalForDouble) { BigDecimalVal(BigDecimal(value)) } else { DoubleVal(value.toDouble) }
         }
         else IntVal(BigInt(value))
       }
 
       while (true) {
-        buf.next match {
-          case c if EOF == c => 
-            buf.automaticClose
-            return End
-          case '{' =>
-            blocks.addFirst(OBJECT)
+        val c = buf.next
+        if (c == EOF) {
+          buf.automaticClose
+          return End
+        } else if (c == '{') {
+          blocks.addFirst(OBJECT)
+          fieldNameMode = true
+          return OpenObj
+        } else if (c == '}') {
+          blocks.poll
+          return CloseObj
+        } else if (c == '"') {
+          if (fieldNameMode && blocks.peek == OBJECT) return FieldStart(parseString)
+          else {
             fieldNameMode = true
-            return OpenObj
-          case '}' =>
-            blocks.poll
-            return CloseObj
-          case '"' =>
-            if (fieldNameMode && blocks.peek == OBJECT) return FieldStart(parseString)
-            else {
-              fieldNameMode = true
-              return StringVal(parseString)
-            }
-          case 't' =>
-            fieldNameMode = true
-            if (buf.next == 'r' && buf.next == 'u' && buf.next == 'e') {
-              return BoolVal(true)
-            }
-            fail("expected boolean")
-          case 'f' =>
-            fieldNameMode = true
-            if (buf.next == 'a' && buf.next == 'l' && buf.next == 's' && buf.next == 'e') {
-              return BoolVal(false)
-            }
-            fail("expected boolean")
-          case 'n' =>
-            fieldNameMode = true
-            if (buf.next == 'u' && buf.next == 'l' && buf.next == 'l') {
-              return NullVal
-            }
-            fail("expected null")
-          case ':' =>
-            if (blocks.peek == ARRAY) fail("Colon in an invalid position")
-            fieldNameMode = false
-          case '[' =>
-            blocks.addFirst(ARRAY)
-            return OpenArr
-          case ']' =>
-            fieldNameMode = true
-            blocks.poll
-            return CloseArr
-          case c if Character.isDigit(c) || c == '-' || c == '+' =>
-            fieldNameMode = true
-            return parseValue(c)
-          case c if isDelimiter(c) =>
-          case c => fail(s"unknown token $c")
-        }
+            return StringVal(parseString)
+          }
+        } else if (c == 't') {
+          fieldNameMode = true
+          if (buf.next == 'r' && buf.next == 'u' && buf.next == 'e') {
+            return BoolVal(value = true)
+          }
+          fail("expected boolean")
+        } else if (c == 'f') {
+          fieldNameMode = true
+          fieldNameMode = true
+           if (buf.next == 'a' && buf.next == 'l' && buf.next == 's' && buf.next == 'e') {
+             return BoolVal(value = false)
+           }
+           fail("expected boolean")
+         } else if (c == 'n') {
+           fieldNameMode = true
+           if (buf.next == 'u' && buf.next == 'l' && buf.next == 'l') {
+             return NullVal
+           }
+           fail("expected null")
+        } else if (c == ':') {
+          if (blocks.peek == ARRAY) fail("Colon in an invalid position")
+          fieldNameMode = false
+        } else if (c == '[') {
+          blocks.addFirst(ARRAY)
+          return OpenArr
+        } else if (c == ']') {
+          fieldNameMode = true
+          blocks.poll
+          return CloseArr
+        } else if (Character.isDigit(c) || c == '-' || c == '+') {
+          fieldNameMode = true
+          return parseValue(c)
+        } else if (!isDelimiter(c)) fail(s"unknown token $c")
       }
       buf.automaticClose
       End

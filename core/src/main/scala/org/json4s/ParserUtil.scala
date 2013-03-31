@@ -1,5 +1,7 @@
 package org.json4s
 
+import annotation.switch
+
 
 object ParserUtil {
 
@@ -48,7 +50,7 @@ object ParserUtil {
       var c = '\\'
       while (c != '"') {
         if (c == '\\') {
-          buf.next match {
+          (buf.next: @switch) match {
             case '"'  => s.append('"')
             case '\\' => s.append('\\')
             case '/'  => s.append('/')
@@ -166,11 +168,11 @@ object ParserUtil {
     import java.util.concurrent.ArrayBlockingQueue
     import java.util.concurrent.atomic.AtomicInteger
 
-    private[json4s] var segmentSize = 1000
+    var segmentSize = 1000
     private[this] val maxNumOfSegments = 10000
-    private[this] var segmentCount = new AtomicInteger(0)
+    private[this] val segmentCount = new AtomicInteger(0)
     private[this] val segments = new ArrayBlockingQueue[Segment](maxNumOfSegments)
-    private[json4s] def clear = segments.clear
+    def clear = segments.clear
 
     def apply(): Segment = {
       val s = acquire
@@ -201,11 +203,12 @@ object ParserUtil {
   case class DisposableSegment(seg: Array[Char]) extends Segment
 
 
-  private val BrokenDouble = BigDecimal("2.2250738585072012e-308")
+//  private[this] val BrokenDouble = BigDecimal("2.2250738585072012e-308")
   private[json4s] def parseDouble(s: String) = {
-    val d = BigDecimal(s)
-    if (d == BrokenDouble) sys.error("Error parsing 2.2250738585072012e-308")
-    else d.doubleValue
+    s.toDouble
+//    val d = BigDecimal(s)
+//    if (d == BrokenDouble) throw new ParseException("Error parsing 2.2250738585072012e-308", null)
+//    else d.doubleValue
   }
 
 }

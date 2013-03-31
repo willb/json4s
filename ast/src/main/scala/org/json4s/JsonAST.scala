@@ -19,6 +19,7 @@ package org.json4s
 import java.util.Locale.ENGLISH
 import java.io.StringWriter
 import collection.immutable
+import annotation.switch
 
 object JsonAST {
 
