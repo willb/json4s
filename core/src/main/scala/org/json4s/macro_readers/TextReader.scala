@@ -3,6 +3,7 @@ package macro_readers
 
 import annotation.tailrec
 import collection.mutable.ListBuffer
+import runtime.ScalaRunTime
 
 /**
  * @author Bryce Anderson
@@ -17,6 +18,9 @@ final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader wi
     case other: TextObjectReader => this.fields == other.fields
     case _ => false
   }
+
+
+  override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1(fields))
 
   val fields: List[(String, JsonField)] = {
     if(cursor.nextChar() != '{' ) failStructure(s"Json is not an object: ${cursor.remainder}")
@@ -110,6 +114,10 @@ final class TextArrayIterator(cursor: JsonTextCursor) extends JsonArrayIterator 
     case other: TextArrayIterator => this.fields == other.fields
     case _ => false
   }
+
+
+  // TODO: THIS IS BAD, a hashcode should not use a mutable variable
+  override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1(fields))
 
   var fields: List[JsonField] = {
     if(cursor.nextChar() != '[' ) failParse(s"Json is not an array.")

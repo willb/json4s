@@ -39,7 +39,7 @@ object Serializer {
   def decompose[U: c.WeakTypeTag](c: Context)(obj: c.Expr[U])(defaultFormats: c.Expr[Formats]): c.Expr[JValue] = {
     import c.universe._
     reify {
-      val writer = JsonWriter.ast
+      val writer = if (defaultFormats.splice.wantsBigDecimal) JsonWriter.bigDecimalAst else JsonWriter.ast
       (serializeImpl(c)(obj, c.Expr[JsonWriter[JValue]](Ident("writer")))(defaultFormats)).splice
       writer.result
     }
