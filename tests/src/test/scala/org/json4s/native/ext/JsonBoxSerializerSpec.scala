@@ -14,8 +14,8 @@
 //* limitations under the License.
 //*/
 //
-//package org.json4s
-//package ext
+//readers org.json4s
+//readers ext
 //
 //import org.specs2.mutable.Specification
 //

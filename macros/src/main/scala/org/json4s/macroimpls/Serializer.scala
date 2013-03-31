@@ -104,7 +104,7 @@ object Serializer {
     def optionExpr(tpe: Type, path: Tree): Expr[Unit] = {
       val TypeRef(_, _ :Symbol, pTpe::Nil) = tpe
       reify{
-        PrimativeHelpers.optIdent(c.Expr[Option[_]](path).splice) match {
+        PrimitiveHelpers.optIdent(c.Expr[Option[_]](path).splice) match {
           case Some(x) => c.Expr[Unit](buildTpe(pTpe, Ident("x"))).splice
           case None    => writerStack.splice.addJValue(org.json4s.JNothing)
         }

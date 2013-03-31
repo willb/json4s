@@ -3,14 +3,14 @@ package org.json4s.macroimpls
 import language.experimental.macros
 import scala.reflect.macros.Context
 import scala.Some
-import org.json4s.playground.{JsonReader, JsonObjectReader, JsonArrayIterator}
+import org.json4s.macro_readers.{JsonReader, JsonObjectReader, JsonArrayIterator}
 
 import org.json4s.MappingException
 
 
 object Deserializer {
   import macrohelpers._
-  import PrimativeHelpers._
+  import PrimitiveHelpers._
   import org.json4s._
 
   import java.util.Date
@@ -19,7 +19,7 @@ object Deserializer {
   def read[U](str: String)(implicit defaultFormats: Formats) = macro read_impl[U]
   def read_impl[U: c.WeakTypeTag](c: Context)(str: c.Expr[String])(defaultFormats: c.Expr[Formats]): c.Expr[U] = {
     import c.universe._
-    val reader = reify (playground.JsonTextReader.bindText(str.splice))
+    val reader = reify (macro_readers.JsonTextReader.bindText(str.splice))
     deserialize_impl[U](c)(reader)(defaultFormats)
   }
 
@@ -58,7 +58,7 @@ object Deserializer {
 
     def buildMap(tpe:Type, reader: c.Expr[JsonObjectReader]): c.Tree   = {
       val TypeRef(_, _, keyTpe::valTpe::Nil) = tpe
-      // Capable of parsing maps that contain primatives as keys, not only strings
+      // Capable of parsing maps that contain primitives as keys, not only strings
       val kExpr = c.Expr[String](Ident("k"))
       val keyParser = keyTpe match {
         case a if a =:= typeOf[Int] => reify{kExpr.splice.toInt}
@@ -66,7 +66,7 @@ object Deserializer {
         case a if a =:= typeOf[Float] => reify{kExpr.splice.toDouble}
         case a if a =:= typeOf[Double] => reify{kExpr.splice.toDouble}
         case a if a =:= typeOf[String] => reify{kExpr.splice}
-        case _ => c.abort(c.enclosingPosition, "Map must contain primative types as keys!")
+        case _ => c.abort(c.enclosingPosition, "Map must contain primitive types as keys!")
       }
 
       reify {
@@ -126,7 +126,7 @@ object Deserializer {
 
     // Helps build the different fields of an Object or Map
     def buildField(tpe: Type, fieldName: c.Expr[String], reader: c.Expr[JsonObjectReader]): Tree = {
-      if (helpers.isPrimitive(tpe)) buildPrimative(tpe, fieldName, reader)
+      if (helpers.isPrimitive(tpe)) buildPrimitive(tpe, fieldName, reader)
       // The privileged types
       else if (tpe.erasure <:< typeOf[Option[_]]) {
         rparseOption(tpe, fieldName, reader)
@@ -148,7 +148,7 @@ object Deserializer {
       else  buildObject(tpe, reify{ reader.splice.getObjectReader(fieldName.splice)})
     }
 
-    def buildPrimative(tpe: Type, field: c.Expr[String], reader: c.Expr[JsonObjectReader]) = {
+    def buildPrimitive(tpe: Type, field: c.Expr[String], reader: c.Expr[JsonObjectReader]) = {
       if      (tpe =:= typeOf[Int])         reify {reader.splice.getInt(field.splice)    }.tree
       else if (tpe =:= typeOf[Long])        reify { reader.splice.getLong(field.splice)  }.tree
       else if (tpe =:= typeOf[Float])       reify { reader.splice.getFloat(field.splice) }.tree
@@ -157,10 +157,10 @@ object Deserializer {
       else if (tpe =:= typeOf[String])      { rparseString(field, reader).tree }
       else if (tpe =:= typeOf[Date])         { rparseDate(field, reader).tree   }
       else if (tpe =:= typeOf[scala.Symbol]) { rparseSymbol(field, reader).tree }
-      else throw new java.lang.NoSuchFieldException(s"Type '$tpe' is not a primative!")
+      else throw new java.lang.NoSuchFieldException(s"Type '$tpe' is not a primitive!")
     }
 
-    def buildPrimativeOpt(tpe: Type, field: c.Expr[String], reader: c.Expr[JsonObjectReader]): c.Expr[Option[_]] = {
+    def buildPrimitiveOpt(tpe: Type, field: c.Expr[String], reader: c.Expr[JsonObjectReader]): c.Expr[Option[_]] = {
       if      (tpe =:= typeOf[Int])         reify {reader.splice.optInt(field.splice)     }
       else if (tpe =:= typeOf[Long])        reify { reader.splice.optLong(field.splice)   }
       else if (tpe =:= typeOf[Float])       reify { reader.splice.optFloat(field.splice)  }
@@ -173,7 +173,7 @@ object Deserializer {
       else if (tpe =:= typeOf[scala.Symbol]) reify {
         reader.splice.optString(field.splice).map(Symbol(_))
       }
-      else throw new java.lang.NoSuchFieldException(s"Type '$tpe' is not a primative!")
+      else throw new java.lang.NoSuchFieldException(s"Type '$tpe' is not a primitive!")
     }
 
     // The really heavyweight function. Most of the magic happens in the last else statement
@@ -203,7 +203,7 @@ object Deserializer {
           // default evaluation from its companion object
           if (pSym.asTerm.isParamWithDefault && helpers.isPrimitive(pTpe)) {
             reify {
-              buildPrimativeOpt(pTpe, fieldName, orExpr).splice
+              buildPrimitiveOpt(pTpe, fieldName, orExpr).splice
               .getOrElse(c.Expr(Select(Ident(sym.companionSymbol), newTermName(
                 "$lessinit$greater$default$" + (index+1).toString))
               ).splice)
@@ -232,7 +232,7 @@ object Deserializer {
         val compName = LIT(varName)
         // Use option if primitive, should be faster than exceptions.
         if(helpers.isPrimitive(pTpe)) reify {
-          buildPrimativeOpt(pTpe, compName, orExpr).splice match {
+          buildPrimitiveOpt(pTpe, compName, orExpr).splice match {
             case Some(x) => c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)), Ident("x"))).splice
             case None =>
           }

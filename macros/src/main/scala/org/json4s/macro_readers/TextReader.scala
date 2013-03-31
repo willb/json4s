@@ -1,5 +1,5 @@
 package org.json4s
-package playground
+package macro_readers
 
 import annotation.tailrec
 import collection.mutable.ListBuffer

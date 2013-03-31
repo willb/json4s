@@ -25,7 +25,7 @@ trait Printer {
    */
   def compact[A <: Writer](d: Document, out: A): A = {
     def layout(docs: List[Document]): Unit = docs match {
-      case Nil                   =>
+      case Nil =>
       case DocText(s) :: rs      => out.write(s); layout(rs)
       case DocCons(d1, d2) :: rs => layout(d1 :: d2 :: rs)
       case DocBreak :: rs        => layout(rs)

@@ -42,12 +42,12 @@ trait JsonMethods extends org.json4s.JsonMethods[Document] {
       text("{") :: nest(2, nested) :: break :: text("}")
   }
 
-  private def trimArr(xs: List[JValue]) = xs.filter(_ != JNothing)
-  private def trimObj(xs: List[JField]) = xs.filter(_._2 != JNothing)
-  private def series(docs: List[Document]) = punctuate(text(","), docs)
-  private def fields(docs: List[Document]) = punctuate(text(",") :: break, docs)
+  private[this] def trimArr(xs: List[JValue]) = xs.filter(_ != JNothing)
+  private[this] def trimObj(xs: List[JField]) = xs.filter(_._2 != JNothing)
+  private[this] def series(docs: List[Document]) = punctuate(text(","), docs)
+  private[this] def fields(docs: List[Document]) = punctuate(text(",") :: break, docs)
 
-  private def punctuate(p: Document, docs: List[Document]): Document =
+  private[this] def punctuate(p: Document, docs: List[Document]): Document =
     if (docs.length == 0) empty
     else docs.reduceLeft((d1, d2) => d1 :: p :: d2)
 
