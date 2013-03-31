@@ -84,6 +84,7 @@ object build extends Build {
     id = "json4s-core",
     base = file("core"),
     settings = json4sSettings ++ Seq(
+      compileOrder := CompileOrder.JavaThenScala,
       libraryDependencies <++= scalaVersion { sv => Seq(paranamer, scalap(sv)) },
       unmanagedSourceDirectories in Compile <+= (scalaVersion, baseDirectory) {
         case (v, dir) if v startsWith "2.9" => dir / "src/main/scala_2.9"
@@ -145,7 +146,8 @@ object build extends Build {
     native % "compile;test->test",
     jacksonSupport % "compile;test->test",
     json4sExt,
-    mongo)
+    mongo,
+    macros)
 
 //
 //  lazy val jacksonExt = Project(
