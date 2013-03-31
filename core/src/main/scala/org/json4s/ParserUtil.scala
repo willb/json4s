@@ -1,6 +1,7 @@
 package org.json4s
 
 import annotation.switch
+import io.NumberInput
 
 
 object ParserUtil {
@@ -50,21 +51,20 @@ object ParserUtil {
       var c = '\\'
       while (c != '"') {
         if (c == '\\') {
-          (buf.next: @switch) match {
-            case '"'  => s.append('"')
-            case '\\' => s.append('\\')
-            case '/'  => s.append('/')
-            case 'b'  => s.append('\b')
-            case 'f'  => s.append('\f')
-            case 'n'  => s.append('\n')
-            case 'r'  => s.append('\r')
-            case 't'  => s.append('\t')
-            case 'u' =>
-              val chars = Array(buf.next, buf.next, buf.next, buf.next)
-              val codePoint = Integer.parseInt(new String(chars), 16)
-              s.appendCodePoint(codePoint)
-            case _ => s.append('\\')
-          }
+          val n = buf.next
+          if (n == '"') s.append('"')
+          else if (n == '\\') s.append('\\')
+          else if (n == '/') s.append('/')
+          else if (n == 'b') s.append('b')
+          else if (n == 'f') s.append('f')
+          else if (n == 'n') s.append('n')
+          else if (n == 'r') s.append('r')
+          else if (n == 't') s.append('t')
+          else if (n == 'u') {
+            val chars = Array(buf.next, buf.next, buf.next, buf.next)
+            val codePoint = Integer.parseInt(new String(chars), 16)
+            s.appendCodePoint(codePoint)
+          } else s.append('\\')
         } else s.append(c)
         c = buf.next
       }
@@ -204,11 +204,12 @@ object ParserUtil {
 
 
 //  private[this] val BrokenDouble = BigDecimal("2.2250738585072012e-308")
-  private[json4s] def parseDouble(s: String) = {
-    s.toDouble
+
+  // this bug appears to have been fixed, so the fix is to use a more recent version of jvm 1.6 or 1.7
+  @inline private[json4s] def parseDouble(s: String) = s.toDouble //{
 //    val d = BigDecimal(s)
-//    if (d == BrokenDouble) throw new ParseException("Error parsing 2.2250738585072012e-308", null)
+//    if (d == BrokenDouble) sys.error("Error parsing 2.2250738585072012e-308")
 //    else d.doubleValue
-  }
+//  }
 
 }

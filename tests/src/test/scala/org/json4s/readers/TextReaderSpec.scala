@@ -1,5 +1,5 @@
 package org.json4s
-package playground
+package macro_readers
 
 import org.specs2.mutable.Specification
 
@@ -131,7 +131,6 @@ class TextReaderSpec extends Specification {
   }
 
   "JsonTextReader with Macro serializer" should {
-    import org.json4s.Macros
     implicit val defaultFormats = DefaultFormats
 
 

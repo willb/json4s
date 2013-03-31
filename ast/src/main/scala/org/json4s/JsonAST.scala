@@ -188,20 +188,18 @@ object JsonAST {
     var i: Int = 0
     var begin = 0
     val l = s.length
-    @inline def append(str: String) = { writer.append(s.substring(begin,i)); begin = i+1; writer.append(str) }
+    @inline def append(str: String) = { writer.append(s.substring(begin,i)); begin = i+1; writer.append(s"\\$str") }
     while(i < l) {
-      (s.charAt(i): @switch) match {
-        case '"' => append("\\\"")
-        case '\\' => append("\\\\")
-        case '\b' => append("\\b")
-        case '\f' => append("\\f")
-        case '\n' => append("\\n")
-        case '\r' => append("\\r")
-        case '\t' => append("\\t")
-        case x =>
-          if ((x >= '\u0000' && x < '\u001f') || (x >= '\u0080' && x < '\u00a0') || (x >= '\u2000' && x < '\u2100'))
-            append("\\u%04x".format(x: Int))
-      }
+      val c = s.charAt(i)
+      if (c == '"') append("\"")
+      else if (c == '\\') append("\\")
+      else if (c == '\b') append("b")
+      else if (c == '\f') append("f")
+      else if (c == '\n') append("n")
+      else if (c == '\r') append("r")
+      else if (c == '\t') append("t")
+      else if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100'))
+        append("\\u%04x".format(c: Int))
       i+=1
     }
     writer.append(s.substring(begin,i))

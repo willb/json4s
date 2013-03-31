@@ -18,6 +18,7 @@ package org.json4s
 package native
 
 import org.json4s.ParserUtil.{Buffer, parseDouble, ParseException}
+import io.NumberInput
 
 /** JSON parser.
  */
@@ -236,7 +237,6 @@ object JsonParser {
         }
         val value = s.toString
         if (doubleVal) {
-//          if (useBigDecimalForDouble) { BigDecimalVal(BigDecimal(value)) } else { DoubleVal(parseDouble(value)) }
           if (useBigDecimalForDouble) { BigDecimalVal(BigDecimal(value)) } else { DoubleVal(value.toDouble) }
         }
         else IntVal(BigInt(value))

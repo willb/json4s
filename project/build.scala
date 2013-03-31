@@ -85,7 +85,9 @@ object build extends Build {
     base = file("core"),
     settings = json4sSettings ++ Seq(
       compileOrder := CompileOrder.JavaThenScala,
-      libraryDependencies <++= scalaVersion { sv => Seq(paranamer, scalap(sv)) },
+      libraryDependencies <++= scalaVersion { sv =>
+        Seq(paranamer, scalap(sv) % "provided")
+      },
       unmanagedSourceDirectories in Compile <+= (scalaVersion, baseDirectory) {
         case (v, dir) if v startsWith "2.9" => dir / "src/main/scala_2.9"
         case (v, dir) if v startsWith "2.10" => dir / "src/main/scala_2.10"
@@ -159,7 +161,7 @@ object build extends Build {
   lazy val macros = Project(
     id = "json4s-macros",
     base = file("macros"),
-    settings = json4sSettings ++ Seq(libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-reflect" % _))
+    settings = json4sSettings ++ Seq(libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-reflect" % _ % "provided"))
   ) dependsOn(core % "compile;test->test")
   
   lazy val scalazExt = Project(

@@ -2,10 +2,9 @@ package org.json4s
 
 import org.specs2.mutable.Specification
 import java.util.Date
-import org.json4s.ParserUtil.ParseException
 import Macros._
 import collection.mutable
-import playground._
+import macro_readers._
 
 case class Junk(in1:Int, in2:String)
 case class MutableJunk(var in1:Int,var in2:String)
@@ -68,14 +67,14 @@ class MacroDeserializerSpec extends Specification {
       deserialize[List[Map[String,Int]]](AstReader(params)) must_== expected
     }
 
-    "Build maps of primatives with string key" in {
+    "Build maps of primitives with string key" in {
       val expected = Map[String, Int](("a" -> 1), ("b" -> 2), ("c" -> 3))
       val params: JValue = expected
 
       deserialize[Map[String,Int]](AstReader(params)) must_== expected
     }
 
-    "Build maps of primatives with Int key" in {
+    "Build maps of primitives with Int key" in {
       val expected = Map(1 -> 1, 2 -> 2, 100 -> 3)
       val data: JValue = expected.map{case (k,v) => (k.toString, v)}
 

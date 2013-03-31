@@ -1,5 +1,5 @@
 package org.json4s
-package playground
+package macro_readers
 
 /**
  * @author Bryce Anderson

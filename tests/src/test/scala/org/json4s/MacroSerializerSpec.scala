@@ -21,7 +21,7 @@ class MacroSerializerSpec extends Specification {
 
   "Macro Serializer" should {
 
-    "Build primative case classes" in {
+    "Build primitive case classes" in {
       val writer = JsonWriter.ast
       val sim = Simple(1, "two")
       serialize(sim, writer)
@@ -75,7 +75,7 @@ class MacroSerializerSpec extends Specification {
       writer.result must_== JObject(("option" -> JNothing))
     }
 
-    "serialize a List of primatives" in {
+    "serialize a List of primitives" in {
       val writer = JsonWriter.ast
       val a = (4 to 60).toList
       serialize(a, writer)
