@@ -18,7 +18,6 @@ package org.json4s
 package native
 
 import org.json4s.ParserUtil.{Buffer, parseDouble, ParseException}
-import io.NumberInput
 
 /** JSON parser.
  */

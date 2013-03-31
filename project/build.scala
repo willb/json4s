@@ -86,7 +86,7 @@ object build extends Build {
     settings = json4sSettings ++ Seq(
       compileOrder := CompileOrder.JavaThenScala,
       libraryDependencies <++= scalaVersion { sv =>
-        Seq(paranamer, scalap(sv) % "provided")
+        Seq(paranamer, scalap(sv), "org.scala-lang" % "scala-reflect" % sv)
       },
       unmanagedSourceDirectories in Compile <+= (scalaVersion, baseDirectory) {
         case (v, dir) if v startsWith "2.9" => dir / "src/main/scala_2.9"
@@ -148,8 +148,7 @@ object build extends Build {
     native % "compile;test->test",
     jacksonSupport % "compile;test->test",
     json4sExt,
-    mongo,
-    macros)
+    mongo)
 
 //
 //  lazy val jacksonExt = Project(
@@ -158,11 +157,11 @@ object build extends Build {
 //    settings = json4sSettings ++ Seq(libraryDependencies ++= jodaTime)
 //  ) dependsOn(jacksonSupport % "compile;test->test")
 //
-  lazy val macros = Project(
-    id = "json4s-macros",
-    base = file("macros"),
-    settings = json4sSettings ++ Seq(libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-reflect" % _ % "provided"))
-  ) dependsOn(core % "compile;test->test")
+//  lazy val macros = Project(
+//    id = "json4s-macros",
+//    base = file("macros"),
+//    settings = json4sSettings ++ Seq(libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-reflect" % _ % "provided"))
+//  ) dependsOn(core % "compile;test->test")
   
   lazy val scalazExt = Project(
     id = "json4s-scalaz",
@@ -192,7 +191,7 @@ object build extends Build {
           |import scala.tools.scalap.scalax.rules.scalasig._
         """.stripMargin
     )
-  ) dependsOn(core, native, json4sExt, scalazExt, jacksonSupport, mongo, macros)
+  ) dependsOn(core, native, json4sExt, scalazExt, jacksonSupport, mongo)
 
   lazy val benchmark = Project(
     id = "json4s-benchmark",
@@ -211,7 +210,7 @@ object build extends Build {
             runJVMOptions = options, workingDirectory = Some(base)) )
       }
     )
-  ) dependsOn(core, native, jacksonSupport, json4sExt, mongo, macros)
+  ) dependsOn(core, native, jacksonSupport, json4sExt, mongo)
 
 
 }

@@ -16,11 +16,6 @@
 
 package org.json4s
 
-import java.util.Locale.ENGLISH
-import java.io.StringWriter
-import collection.immutable
-import annotation.switch
-
 object JsonAST {
 
   /**
@@ -199,7 +194,7 @@ object JsonAST {
       else if (c == '\r') append("r")
       else if (c == '\t') append("t")
       else if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100'))
-        append("\\u%04x".format(c: Int))
+        append("u%04x".format(c: Int))
       i+=1
     }
     writer.append(s.substring(begin,i))

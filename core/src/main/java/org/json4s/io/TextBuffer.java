@@ -395,16 +395,6 @@ public final class TextBuffer
         return new BigDecimal(contentsAsArray());
     }
 
-    /**
-     * Convenience method for converting contents of the buffer
-     * into a Double value.
-     */
-    public double contentsAsDouble()
-        throws NumberFormatException
-    {
-        return NumberInput.parseDouble(contentsAsString());
-    }
-
     /*
     /**********************************************************
     /* Public mutators:
