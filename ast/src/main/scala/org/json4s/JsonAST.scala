@@ -186,7 +186,7 @@ object JsonAST {
     var i: Int = 0
     var begin = 0
     val l = s.length
-    def append(str: String) = { writer.append(s.substring(begin,i)); begin = i+1; writer.append(str) }
+    @inline def append(str: String) = { writer.append(s.substring(begin,i)); begin = i+1; writer.append(str) }
     while(i < l) {
       (s.charAt(i): @switch) match {
         case '"' => append("\\\"")
