@@ -96,4 +96,9 @@ public final class SegmentedStringWriter
         _buffer.releaseBuffers();
         return result;
     }
+
+    @Override
+    public String toString() {
+        return getAndClear();
+    }
 }

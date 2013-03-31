@@ -1,6 +1,8 @@
 package org.json4s
 package native
 
+import io.{BufferRecycler, SegmentedStringWriter}
+
 /** Printer converts JSON to String.
  * Before printing a <code>JValue</code> needs to be rendered into scala.text.Document.
  * <p>
@@ -17,7 +19,7 @@ trait Printer {
 
   /** Compact printing (no whitespace etc.)
    */
-  def compact(d: Document): String = compact(d, new StringWriter).toString
+  def compact(d: Document): String = compact(d, new SegmentedStringWriter(new BufferRecycler())).toString
 
   /** Compact printing (no whitespace etc.)
    */
@@ -39,7 +41,7 @@ trait Printer {
 
   /** Pretty printing.
    */
-  def pretty(d: Document): String = pretty(d, new StringWriter).toString
+  def pretty(d: Document): String = pretty(d, new SegmentedStringWriter(new BufferRecycler())).toString
 
   /** Pretty printing.
    */

@@ -6,6 +6,7 @@ import java.io._
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import java.util.concurrent.atomic.AtomicLong
+import io.{BufferRecycler, SegmentedStringWriter}
 
 object SerBench extends Benchmark {
 
@@ -115,7 +116,7 @@ object SerBench extends Benchmark {
         new ObjectInputStream(new ByteArrayInputStream(array)).readObject.asInstanceOf[Project]
 
   def macrosSer(implicit formats: Formats) = {
-    val writer = JsonWriter.streaming(new StringWriter())
+    val writer = JsonWriter.streaming(new SegmentedStringWriter(new BufferRecycler))
     Macros.serialize(project, writer)
     writer.result.toString
   }
