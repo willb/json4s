@@ -104,6 +104,16 @@ For the native support add the following dependency to your pom:
       <artifactId>json4s-native_${scala.version}</artifactId>
       <version>3.2.3</version>
     </dependency>
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scalap</artifactId>
+      <version>${scala.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-reflect</artifactId>
+      <version>${scala.version}</version>
+    </dependency>
 
 For the jackson support add the following dependency to your pom:
 
@@ -111,6 +121,16 @@ For the jackson support add the following dependency to your pom:
       <groupId>org.json4s</groupId>
       <artifactId>json4s-jackson_${scala.version}</artifactId>
       <version>3.2.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scalap</artifactId>
+      <version>${scala.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-reflect</artifactId>
+      <version>${scala.version}</version>
     </dependency>
 
 ### Others
@@ -139,6 +159,10 @@ Support for Box
 
 Migration from older versions
 =============================
+
+3.3.0 ->
+--------
+
 
 3.0.0 ->
 --------
@@ -417,7 +441,7 @@ XPath + HOFs
 ------------
 
 Json AST can be queried using XPath like functions. Following REPL session shows the usage of
-'\\', '\\\\', 'find', 'filter', 'transform', 'remove' and 'values' functions.
+'\', '\\', 'find', 'filter', 'transform', 'remove' and 'values' functions.
 
     The example json is:
 

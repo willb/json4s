@@ -1,9 +1,5 @@
 package org.json4s
 
-import annotation.switch
-import io.NumberInput
-
-
 object ParserUtil {
 
   class ParseException(message: String, cause: Exception) extends Exception(message, cause)
@@ -21,11 +17,11 @@ object ParserUtil {
           if (n == '"') s.append('"')
           else if (n == '\\') s.append('\\')
           else if (n == '/') s.append('/')
-          else if (n == 'b') s.append('b')
-          else if (n == 'f') s.append('f')
-          else if (n == 'n') s.append('n')
-          else if (n == 'r') s.append('r')
-          else if (n == 't') s.append('t')
+          else if (n == 'b') s.append('\b')
+          else if (n == 'f') s.append('\f')
+          else if (n == 'n') s.append('\n')
+          else if (n == 'r') s.append('\r')
+          else if (n == 't') s.append('\t')
           else if (n == 'u') {
             val chars = Array(buf.next, buf.next, buf.next, buf.next)
             val codePoint = Integer.parseInt(new String(chars), 16)
@@ -169,13 +165,12 @@ object ParserUtil {
   case class DisposableSegment(seg: Array[Char]) extends Segment
 
 
-//  private[this] val BrokenDouble = BigDecimal("2.2250738585072012e-308")
+  private[this] val BrokenDouble = BigDecimal("2.2250738585072012e-308")
 
-  // this bug appears to have been fixed, so the fix is to use a more recent version of jvm 1.6 or 1.7
-  @inline private[json4s] def parseDouble(s: String) = s.toDouble //{
-//    val d = BigDecimal(s)
-//    if (d == BrokenDouble) sys.error("Error parsing 2.2250738585072012e-308")
-//    else d.doubleValue
-//  }
+  @inline private[json4s] def parseDouble(s: String) = {
+    val d = BigDecimal(s)
+    if (d == BrokenDouble) sys.error("Error parsing 2.2250738585072012e-308")
+    else d.doubleValue
+  }
 
 }
