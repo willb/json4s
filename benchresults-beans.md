@@ -25,7 +25,6 @@ json4s-native (ser)               177ms
 json4s-jackson (ser)              187ms  
 json4s-native (deser)             308ms  
 json4s-jackson (deser)            280ms  
-json4s-native old pretty          376ms  
 
 ### No type hints
 json4s-native (full)              803ms  
@@ -34,7 +33,6 @@ json4s-native (ser)               246ms
 json4s-jackson (ser)              292ms  
 json4s-native (deser)             471ms  
 json4s-jackson (deser)            438ms  
-json4s-native old pretty          521ms  
 
 ### Short type hints
 json4s-native (full)             1207ms  
@@ -43,7 +41,6 @@ json4s-native (ser)               317ms
 json4s-jackson (ser)              363ms  
 json4s-native (deser)             771ms  
 json4s-jackson (deser)            729ms  
-json4s-native old pretty          687ms  
 
 ### Full type hints
 json4s-native (full)             1632ms  
@@ -52,4 +49,3 @@ json4s-native (ser)               540ms
 json4s-jackson (ser)              574ms  
 json4s-native (deser)             955ms  
 json4s-jackson (deser)            887ms  
-json4s-native old pretty          911ms  

@@ -2,9 +2,8 @@ package org.json4s
 package examples
 
 import java.util.Date
-import org.json4s._
 import java.io._
-import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import java.util.concurrent.atomic.AtomicLong
 
@@ -115,13 +114,21 @@ object SerBench extends Benchmark {
   def deserialize(array: Array[Byte]) =
         new ObjectInputStream(new ByteArrayInputStream(array)).readObject.asInstanceOf[Project]
 
+  def macrosSer(implicit formats: Formats) = {
+    val writer = JsonWriter.streaming(new StringWriter())
+    Macros.serialize(project, writer)
+    writer.result.toString
+  }
+
   class Bench(implicit formats: Formats) {
 //    benchmark("Java serialization (full)") { deserialize(serialize(project)) }
 
     benchmark("json4s-native (full)") { native.Serialization.read[Project]( native.Serialization.write(project)) }
     benchmark("json4s-jackson (full)") { jackson.Serialization.read[Project]( jackson.Serialization.write(project)) }
+    benchmark("json4s-macros (full)") { Macros.read[Project](macrosSer) }
     benchmark("json4s-native (ser)") { native.Serialization.write(project) }
     benchmark("json4s-jackson (ser)") { jackson.Serialization.write(project) }
+    benchmark("json4s-macros (ser)") { macrosSer }
 //    val ser1 = serialize(project)
     val ser2 = native.Serialization.write(project)
 
@@ -129,6 +136,8 @@ object SerBench extends Benchmark {
 
     benchmark("json4s-native (deser)") { native.Serialization.read[Project](ser2) }
     benchmark("json4s-jackson (deser)") { jackson.Serialization.read[Project](ser2) }
+    benchmark("json4s-macros (deser)") { Macros.read[Project](ser2) }
+
 
     benchmark("json4s-native old pretty") { native.Serialization.writePrettyOld(project) }
 //    benchmark("json4s-jackson old pretty") { jackson.Serialization.writePrettyOld(project) }
