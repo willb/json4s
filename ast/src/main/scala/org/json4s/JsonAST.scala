@@ -170,5 +170,42 @@ object JsonAST {
     def apply(name: String, value: JValue) = (name, value)
     def unapply(f: JField): Option[(String, JValue)] = Some(f)
   }
+
+  private[this] trait StringAppender[T] {
+    def append(s: String): T
+    def subj: T
+  }
+  private[this] class StringWriterAppender(val subj: java.io.Writer) extends StringAppender[java.io.Writer] {
+    def append(s: String): java.io.Writer = subj.append(s)
+  }
+  private[this] class StringBuilderAppender(val subj: StringBuilder) extends StringAppender[StringBuilder] {
+    def append(s: String): StringBuilder = subj.append(s)
+  }
+
+  private[json4s] def quote(s: String): String = quote(s, new StringBuilderAppender(new StringBuilder)).toString()
+  private[json4s] def quote(s: String, writer: java.io.Writer): java.io.Writer = quote(s, new StringWriterAppender(writer))
+  private[this] def quote[T](s: String, writer: StringAppender[T]): T = { // hot path
+    var i: Int = 0
+    var begin = 0
+    val l = s.length
+    @inline def append(str: String) = { writer.append(s.substring(begin,i)); begin = i+1; writer.append(str) }
+    while(i < l) {
+      (s.charAt(i): @switch) match {
+        case '"' => append("\\\"")
+        case '\\' => append("\\\\")
+        case '\b' => append("\\b")
+        case '\f' => append("\\f")
+        case '\n' => append("\\n")
+        case '\r' => append("\\r")
+        case '\t' => append("\\t")
+        case x =>
+          if ((x >= '\u0000' && x < '\u001f') || (x >= '\u0080' && x < '\u00a0') || (x >= '\u2000' && x < '\u2100'))
+            append("\\u%04x".format(x: Int))
+      }
+      i+=1
+    }
+    writer.append(s.substring(begin,i))
+    writer.subj
+  }
 }
 
