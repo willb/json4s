@@ -23,6 +23,13 @@ object Deserializer {
     deserialize_impl[U](c)(reader)(defaultFormats)
   }
 
+  def extract[U](jvalue: JValue)(implicit defaultFormats: Formats) = macro extract_impl[U]
+  def extract_impl[U: c.WeakTypeTag](c: Context)(jvalue: c.Expr[JValue])(defaultFormats: c.Expr[Formats]): c.Expr[U] = {
+    import c.universe._
+    val reader = reify(macro_readers.AstReader(jvalue.splice))
+    deserialize_impl[U](c)(reader)(defaultFormats)
+  }
+
   // The meat and potatoes of the implementation.
   def deserialize[U](reader: JsonReader)(implicit defaultFormats: Formats) = macro deserialize_impl[U]
   def deserialize_impl[U: c.WeakTypeTag](c: Context)(reader: c.Expr[JsonReader])

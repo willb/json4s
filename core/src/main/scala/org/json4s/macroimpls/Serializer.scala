@@ -6,6 +6,7 @@ import java.util.Date
 
 import org.json4s.{Formats, JsonWriter, JValue}
 import macrohelpers._
+import org.json4s.io.{BufferRecycler, SegmentedStringWriter}
 
 
 // Intended to be the serialization side of the class builder
@@ -42,6 +43,54 @@ object Serializer {
       val writer = if (defaultFormats.splice.wantsBigDecimal) JsonWriter.bigDecimalAst else JsonWriter.ast
       (serializeImpl(c)(obj, c.Expr[JsonWriter[JValue]](Ident("writer")))(defaultFormats)).splice
       writer.result
+    }
+  }
+
+
+  def serializeToStreamWriter[U: c.WeakTypeTag, W <: java.io.Writer](c: Context)(obj: c.Expr[U], w: c.Expr[W])(defaultFormats: c.Expr[Formats]): c.Expr[W] = {
+    import c.universe._
+    reify {
+      val writer = JsonWriter.streaming(w.splice)
+      (serializeImpl(c)(obj, c.Expr[JsonWriter[W]](Ident("writer")))(defaultFormats)).splice
+      writer.result
+    }
+  }
+
+  def serializeToString[U: c.WeakTypeTag](c: Context)(obj: c.Expr[U])(defaultFormats: c.Expr[Formats]): c.Expr[String] = {
+    import c.universe._
+    reify {
+      val sw = new SegmentedStringWriter(new BufferRecycler)
+      try {
+        val writer = JsonWriter.streaming(sw)
+        (serializeImpl(c)(obj, c.Expr[JsonWriter[SegmentedStringWriter]](Ident("writer")))(defaultFormats)).splice
+        writer.result.getAndClear
+      } finally {
+        sw.close()
+      }
+    }
+  }
+
+
+  def serializePrettyToStreamWriter[U: c.WeakTypeTag, W <: java.io.Writer](c: Context)(obj: c.Expr[U], w: c.Expr[W])(defaultFormats: c.Expr[Formats]): c.Expr[W] = {
+    import c.universe._
+    reify {
+      val writer = JsonWriter.streamingPretty(w.splice)
+      (serializeImpl(c)(obj, c.Expr[JsonWriter[W]](Ident("writer")))(defaultFormats)).splice
+      writer.result
+    }
+  }
+
+  def serializePrettyToString[U: c.WeakTypeTag](c: Context)(obj: c.Expr[U])(defaultFormats: c.Expr[Formats]): c.Expr[String] = {
+    import c.universe._
+    reify {
+      val sw = new SegmentedStringWriter(new BufferRecycler)
+      try {
+        val writer = JsonWriter.streamingPretty(sw)
+        (serializeImpl(c)(obj, c.Expr[JsonWriter[SegmentedStringWriter]](Ident("writer")))(defaultFormats)).splice
+        writer.result.getAndClear
+      } finally {
+        sw.close()
+      }
     }
   }
 
