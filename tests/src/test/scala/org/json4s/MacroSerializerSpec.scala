@@ -151,5 +151,13 @@ class MacroSerializerSpec extends Specification {
 
       json must_== JObject(List(("symbol", JString("cool"))))
     }
+
+    "Serialize with decomposeWithBuilder" in {
+      val writer = JsonWriter.ast
+      val sym = 'cool
+      val json = decomposeWithBuilder(WithSymbol(sym), writer)
+
+      json must_== JObject(List(("symbol", JString("cool"))))
+    }
   }
 }
