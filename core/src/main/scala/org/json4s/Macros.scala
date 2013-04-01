@@ -18,6 +18,12 @@ trait Macros {
 
   def read[U](str: String)(implicit defaultFormats: Formats): U =
     macro macroimpls.Deserializer.read_impl[U]
+
+  def decomposeWithBuilder[U, T](obj: U, builder: JsonWriter[T])(implicit formats: Formats) =
+  macro macroimpls.Serializer.decomposeWithBuilder_impl[U,T]
+
+  def extract[U](jvalue: JValue)(implicit defaultFormats: Formats): U =
+  macro macroimpls.Deserializer.extract_impl[U]
 }
 
 object Macros extends Macros
