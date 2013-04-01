@@ -70,6 +70,16 @@ object Serializer {
     }
   }
 
+  def decomposeWithBuilder[U, T](obj: U, builder: JsonWriter[T])(implicit formats: Formats) = macro decomposeWithBuilder_impl[U,T]
+  def decomposeWithBuilder_impl[U: c.WeakTypeTag, T](c: Context)(obj: c.Expr[U], builder: c.Expr[JsonWriter[T]])
+                                                    (formats: c.Expr[Formats]): c.Expr[T] = {
+    import c.universe._
+    reify{
+      serializeImpl(c)(obj,builder)(formats).splice
+      builder.splice.result
+    }
+  }
+
 
   def serializePrettyToStreamWriter[U: c.WeakTypeTag, W <: java.io.Writer](c: Context)(obj: c.Expr[U], w: c.Expr[W])(defaultFormats: c.Expr[Formats]): c.Expr[W] = {
     import c.universe._

@@ -340,4 +340,13 @@ class MacroDeserializerSpec extends Specification {
       deserialize[Junk](AstReader(params)) must throwA[MappingException]
     }
   }
+
+  "Macro.extract" should {
+    "parse List[Bill]" in {
+      val expected = Bill(1)::Bill(3)::Nil
+      val params: JValue = List(("in" -> 1),("in" -> 3))
+      extract[List[Bill]](params) must_== expected
+    }
+
+  }
 }
