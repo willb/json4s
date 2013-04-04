@@ -19,6 +19,9 @@ trait Macros {
   def read[U](str: String)(implicit defaultFormats: Formats): U =
     macro macroimpls.Deserializer.read_impl[U]
 
+  def serializeToString[U](obj: U)(implicit defaultFormats: Formats): String =
+    macro macroimpls.Serializer.serializeToString[U]
+
   def decomposeWithBuilder[U, T](obj: U, builder: JsonWriter[T])(implicit formats: Formats) =
   macro macroimpls.Serializer.decomposeWithBuilder_impl[U,T]
 
