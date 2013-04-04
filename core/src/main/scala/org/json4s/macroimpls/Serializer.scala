@@ -61,9 +61,9 @@ object Serializer {
     reify {
       val sw = new SegmentedStringWriter(new BufferRecycler)
       try {
-        val writer = JsonWriter.streaming(sw)
+        val writer = new macrohelpers.FastTextWriter(sw)
         (serializeImpl(c)(obj, c.Expr[JsonWriter[SegmentedStringWriter]](Ident("writer")))(defaultFormats)).splice
-        writer.result.getAndClear
+        writer.result
       } finally {
         sw.close()
       }
