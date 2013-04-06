@@ -1,6 +1,7 @@
 package org.json4s
 
 import java.util.Locale.ENGLISH
+import JsonAST._
 
 class MonadicJValue(jv: JValue) {
 

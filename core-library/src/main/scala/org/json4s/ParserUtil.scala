@@ -1,6 +1,5 @@
 package org.json4s
 
-
 object ParserUtil {
 
   class ParseException(message: String, cause: Exception) extends Exception(message, cause)
@@ -14,21 +13,20 @@ object ParserUtil {
       var c = '\\'
       while (c != '"') {
         if (c == '\\') {
-          buf.next match {
-            case '"'  => s.append('"')
-            case '\\' => s.append('\\')
-            case '/'  => s.append('/')
-            case 'b'  => s.append('\b')
-            case 'f'  => s.append('\f')
-            case 'n'  => s.append('\n')
-            case 'r'  => s.append('\r')
-            case 't'  => s.append('\t')
-            case 'u' =>
-              val chars = Array(buf.next, buf.next, buf.next, buf.next)
-              val codePoint = Integer.parseInt(new String(chars), 16)
-              s.appendCodePoint(codePoint)
-            case _ => s.append('\\')
-          }
+          val n = buf.next
+          if (n == '"') s.append('"')
+          else if (n == '\\') s.append('\\')
+          else if (n == '/') s.append('/')
+          else if (n == 'b') s.append('\b')
+          else if (n == 'f') s.append('\f')
+          else if (n == 'n') s.append('\n')
+          else if (n == 'r') s.append('\r')
+          else if (n == 't') s.append('\t')
+          else if (n == 'u') {
+            val chars = Array(buf.next, buf.next, buf.next, buf.next)
+            val codePoint = Integer.parseInt(new String(chars), 16)
+            s.appendCodePoint(codePoint)
+          } else s.append('\\')
         } else s.append(c)
         c = buf.next
       }
@@ -132,11 +130,11 @@ object ParserUtil {
     import java.util.concurrent.ArrayBlockingQueue
     import java.util.concurrent.atomic.AtomicInteger
 
-    private[json4s] var segmentSize = 1000
+    var segmentSize = 1000
     private[this] val maxNumOfSegments = 10000
-    private[this] var segmentCount = new AtomicInteger(0)
+    private[this] val segmentCount = new AtomicInteger(0)
     private[this] val segments = new ArrayBlockingQueue[Segment](maxNumOfSegments)
-    private[json4s] def clear = segments.clear
+    def clear = segments.clear
 
     def apply(): Segment = {
       val s = acquire
@@ -167,8 +165,9 @@ object ParserUtil {
   case class DisposableSegment(seg: Array[Char]) extends Segment
 
 
-  private val BrokenDouble = BigDecimal("2.2250738585072012e-308")
-  private[json4s] def parseDouble(s: String) = {
+  private[this] val BrokenDouble = BigDecimal("2.2250738585072012e-308")
+
+  @inline private[json4s] def parseDouble(s: String) = {
     val d = BigDecimal(s)
     if (d == BrokenDouble) sys.error("Error parsing 2.2250738585072012e-308")
     else d.doubleValue

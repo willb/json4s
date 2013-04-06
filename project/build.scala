@@ -80,6 +80,23 @@ object build extends Build {
     )
   )
 
+  lazy val coreLibrary = Project(
+    id = "json4s-core-library",
+    base = file("core-library"),
+    settings = json4sSettings ++ Seq(
+      libraryDependencies <++= scalaVersion { sv => Seq(paranamer, scalap(sv)) },
+      unmanagedSourceDirectories in Compile <+= (scalaVersion, baseDirectory) {
+        case (v, dir) if v startsWith "2.9" => dir / "src/main/scala_2.9"
+        case (v, dir) if v startsWith "2.10" => dir / "src/main/scala_2.10"
+      },
+      initialCommands in (Test, console) := """
+          |import org.json4s._
+          |import reflect._
+          |import scala.tools.scalap.scalax.rules.scalasig._
+        """.stripMargin
+    )
+  ) dependsOn(ast % "compile;test->test")
+
   lazy val core = Project(
     id = "json4s-core",
     base = file("core"),
@@ -95,7 +112,7 @@ object build extends Build {
           |import scala.tools.scalap.scalax.rules.scalasig._
         """.stripMargin
     )
-  ) dependsOn(ast % "compile;test->test")
+  ) dependsOn(coreLibrary % "compile;test->test")
 
   lazy val native = Project(
     id = "json4s-native",

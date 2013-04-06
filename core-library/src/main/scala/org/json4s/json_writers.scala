@@ -1,6 +1,8 @@
 package org.json4s
 
 import java.io.{ StringWriter, Writer => JWriter }
+import org.json4s.io.{BufferRecycler, SegmentedStringWriter}
+import JsonAST._
 
 object JsonWriter {
   def ast: JsonWriter[JValue] = new JDoubleAstRootJsonWriter
@@ -122,7 +124,7 @@ private final class JDoubleJObjectJsonWriter(parent: JsonWriter[JValue]) extends
   def startField(name: String): JsonWriter[JValue] = new JDoubleJFieldJsonWriter(name, this)
 
 
-  def addJValue(jv: _root_.org.json4s.JValue): JsonWriter[_root_.org.json4s.JValue] =
+  def addJValue(jv: JValue): JsonWriter[JValue] =
     sys.error("You have to start a field to be able to end it (addJValue called before startField in a JObject builder)")
 
   def result: JValue = JObject(nodes.reverse)
@@ -183,7 +185,7 @@ private final class JDecimalJObjectJsonWriter(parent: JsonWriter[JValue]) extend
   def startField(name: String): JsonWriter[JValue] = new JDecimalJFieldJsonWriter(name, this)
 
 
-  def addJValue(jv: _root_.org.json4s.JValue): JsonWriter[_root_.org.json4s.JValue] =
+  def addJValue(jv: JValue): JsonWriter[JValue] =
     sys.error("You have to start a field to be able to end it (addJValue called before startField in a JObject builder)")
 
   def result: JValue = JObject(nodes.reverse)
@@ -448,7 +450,7 @@ private final class ArrayStreamingJsonWriter[T <: JWriter](protected[this] val n
     this
   }
 }
-private final class RootStreamingJsonWriter[T <: JWriter](protected[this] val nodes: T = new StringWriter(), protected[this] val pretty: Boolean = false, protected[this] val spaces: Int = 2) extends StreamingJsonWriter[T] {
+private final class RootStreamingJsonWriter[T <: JWriter](protected[this] val nodes: T = new SegmentedStringWriter(new BufferRecycler), protected[this] val pretty: Boolean = false, protected[this] val spaces: Int = 2) extends StreamingJsonWriter[T] {
 
   protected[this] val level: Int = 0
 

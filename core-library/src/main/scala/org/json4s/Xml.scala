@@ -16,6 +16,8 @@
 
 package org.json4s
 
+import JsonAST._
+
 /** Functions to convert between JSON and XML.
  */
 object Xml {
@@ -91,16 +93,16 @@ object Xml {
       !descendant(node).find(_.isInstanceOf[Elem]).isDefined
     }
 
-    def isArray(nodeNames: Seq[String]) = nodeNames.size != 1 && nodeNames.toList.distinct.size == 1
-    def directChildren(n: Node): NodeSeq = n.child.filter(c => c.isInstanceOf[Elem])
-    def nameOf(n: Node) = (if (n.prefix ne null) n.prefix + ":" else "") + n.label
-    def buildAttrs(n: Node) = n.attributes.map((a: MetaData) => (a.key, XValue(a.value.text))).toList
-
     sealed trait XElem
     case class XValue(value: String) extends XElem
     case class XLeaf(value: (String, XElem), attrs: List[(String, XValue)]) extends XElem
     case class XNode(fields: List[(String, XElem)]) extends XElem
     case class XArray(elems: List[XElem]) extends XElem
+
+    def isArray(nodeNames: Seq[String]) = nodeNames.size != 1 && nodeNames.toList.distinct.size == 1
+    def directChildren(n: Node): NodeSeq = n.child.filter(c => c.isInstanceOf[Elem])
+    def nameOf(n: Node) = (if (n.prefix ne null) n.prefix + ":" else "") + n.label
+    def buildAttrs(n: Node) = n.attributes.map((a: MetaData) => (a.key, XValue(a.value.text))).toList
 
     def toJValue(x: XElem): JValue = x match {
       case XValue(s) => JString(s)

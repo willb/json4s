@@ -23,6 +23,7 @@ import java.sql.Timestamp
 import reflect._
 import scala.reflect.Manifest
 import scala.collection.JavaConverters._
+import JsonAST._
 
 /** Function to extract values from JSON AST using case classes.
  *
@@ -389,11 +390,24 @@ object Extraction {
         }
       }
     }
+    private[this] def findDirectByName(xs: List[JValue], name: String): List[JValue] = xs.flatMap {
+      case JObject(l) ⇒ l.filter {
+        case (n, _) if n == name ⇒ true
+        case _ ⇒ false
+      } map (_._2)
+      case JArray(l) ⇒ findDirectByName(l, name)
+      case _ ⇒ Nil
+    }
 
+    private[this] def findByName(jv: JValue, name: String): JValue =  findDirectByName(List(jv), name) match {
+      case Nil ⇒ JNothing
+      case x :: Nil ⇒ x
+      case x ⇒ JArray(x)
+    }
     private[this] def instantiate = {
       val jconstructor = constructor.constructor
 
-      val args = constructor.params.map(a => buildCtorArg(json \ a.name, a))
+      val args = constructor.params.map(a => buildCtorArg(findByName(json, a.name), a))
       try {
         if (jconstructor.getDeclaringClass == classOf[java.lang.Object]) fail("No information known about type")
 

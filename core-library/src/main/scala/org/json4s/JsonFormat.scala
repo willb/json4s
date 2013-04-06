@@ -2,7 +2,7 @@ package org.json4s
 
 import collection.{generic, immutable}
 import annotation.implicitNotFound
-
+import JsonAST._
 
 // based on the type classes from play 2 but with the conversions from lift-json
 @implicitNotFound(
@@ -59,7 +59,7 @@ trait DefaultReaders {
   }
 
   implicit object ByteReader extends Reader[Byte] {
-    def read(value: _root_.org.json4s.JValue): Byte = value match {
+    def read(value: JValue): Byte = value match {
       case JInt(x) => x.byteValue
       case JDouble(x) => x.byteValue
       case JDecimal(x) => x.byteValue
@@ -70,7 +70,7 @@ trait DefaultReaders {
   }
 
   implicit object FloatReader extends Reader[Float] {
-    def read(value: _root_.org.json4s.JValue): Float = value match {
+    def read(value: JValue): Float = value match {
       case JInt(x) => x.floatValue
       case JDouble(x) => x.floatValue
       case JDecimal(x) => x.floatValue
@@ -81,7 +81,7 @@ trait DefaultReaders {
   }
 
   implicit object DoubleReader extends Reader[Double] {
-    def read(value: _root_.org.json4s.JValue): Double = value match {
+    def read(value: JValue): Double = value match {
       case JInt(x) => x.doubleValue
       case JDouble(x) => x
       case JDecimal(x) => x.doubleValue
@@ -92,7 +92,7 @@ trait DefaultReaders {
   }
 
   implicit object BigDecimalReader extends Reader[BigDecimal] {
-    def read(value: _root_.org.json4s.JValue): BigDecimal = value match {
+    def read(value: JValue): BigDecimal = value match {
       case JInt(x) => BigDecimal(x)
       case JDouble(x) => BigDecimal(x)
       case JDecimal(x) => x
@@ -103,7 +103,7 @@ trait DefaultReaders {
   }
 
   implicit object BooleanReader extends Reader[Boolean] {
-    def read(value: _root_.org.json4s.JValue): Boolean = value match {
+    def read(value: JValue): Boolean = value match {
       case JBool(v) => v
       case JNull => false
 //      case JString(s) if s.equalsIgnoreCase("true") || s.equalsIgnoreCase("false") => s.toBoolean
@@ -112,7 +112,7 @@ trait DefaultReaders {
   }
 
   implicit object StringReader extends Reader[String] {
-    def read(value: _root_.org.json4s.JValue): String = value match {
+    def read(value: JValue): String = value match {
       case JInt(x) => x.toString
       case JDecimal(x) => x.toString
       case JDouble(x) => x.toString
@@ -124,7 +124,7 @@ trait DefaultReaders {
   }
 
   implicit def mapReader[V](implicit valueReader: Reader[V]): Reader[immutable.Map[String, V]] = new Reader[immutable.Map[String, V]] {
-    def read(value: _root_.org.json4s.JValue): Map[String, V] = value match {
+    def read(value: JValue): Map[String, V] = value match {
       case JObject(v) => Map(v.map({ case JField(k, vl) => k -> valueReader.read(vl)}):_*)
       case x => throw new MappingException("Can't convert %s to String." format x)
     }
@@ -132,7 +132,7 @@ trait DefaultReaders {
 
   implicit def traversableReader[F[_], V](implicit cbf: generic.CanBuildFrom[F[_], V, F[V]], valueReader: Reader[V]) =
     new Reader[F[V]] {
-      def read(value: _root_.org.json4s.JValue): F[V] = value match {
+      def read(value: JValue): F[V] = value match {
         case JArray(items) =>
           val builder = cbf()
           (items.foldLeft(builder) { (acc, i) => acc += valueReader.read(i); acc}).result()
@@ -141,31 +141,32 @@ trait DefaultReaders {
     }
 
   implicit def arrayReader[T:Manifest:Reader]: Reader[Array[T]] = new Reader[Array[T]] {
-    def read(value: _root_.org.json4s.JValue): Array[T] = {
-      value.as[List[T]].toArray
+    def read(value: JValue): Array[T] = {
+      val reader = implicitly[Reader[List[T]]]
+      reader.read(value).toArray
     }
   }
 
   implicit object JValueReader extends Reader[JValue] {
-    def read(value: _root_.org.json4s.JValue): _root_.org.json4s.JValue = value
+    def read(value: JValue): JValue = value
   }
 
   implicit object JObjectReader extends Reader[JObject] {
-    def read(value: _root_.org.json4s.JValue): _root_.org.json4s.JObject = value match {
+    def read(value: JValue): JObject = value match {
       case x: JObject => x
       case x => throw new MappingException("JObject expected, but got %s." format x)
     }
   }
 
   implicit object JArrayReader extends Reader[JArray] {
-    def read(value: _root_.org.json4s.JValue): _root_.org.json4s.JArray = value match {
+    def read(value: JValue): JArray = value match {
       case x: JArray => x
       case x => throw new MappingException("JArray expected, but got %s." format x)
     }
   }
 
   implicit def OptionReader[T](implicit valueReader: Reader[T]) = new Reader[Option[T]] {
-    def read(value: _root_.org.json4s.JValue): Option[T] = {
+    def read(value: JValue): Option[T] = {
       import scala.util.control.Exception.catching
       catching(classOf[RuntimeException], classOf[MappingException]) opt { valueReader read value }
     }
@@ -181,7 +182,7 @@ trait Writer[-T] {
 trait DefaultWriters {
 
   protected abstract class W[-T](fn: T => JValue) extends Writer[T] {
-    def write(obj: T): _root_.org.json4s.JValue = fn(obj)
+    def write(obj: T): JValue = fn(obj)
   }
 
   implicit object IntWriter extends W[Int](JInt(_))
@@ -192,14 +193,14 @@ trait DefaultWriters {
   implicit object BooleanWriter extends W[Boolean](JBool(_))
   implicit object StringWriter extends W[String](JString(_))
   implicit def arrayWriter[T](implicit valueWriter: Writer[T], mf: Manifest[T]): Writer[Array[T]] = new Writer[Array[T]] {
-    def write(obj: Array[T]): _root_.org.json4s.JValue = JArray(obj.map(valueWriter.write(_)).toList)
+    def write(obj: Array[T]): JValue = JArray(obj.map(valueWriter.write(_)).toList)
   }
   implicit def mapWriter[V](implicit valueWriter: Writer[V]): Writer[immutable.Map[String, V]] = new Writer[Map[String, V]] {
-    def write(obj: Map[String, V]): _root_.org.json4s.JValue = JObject(obj.map({case (k, v) => k -> valueWriter.write(v)}).toList)
+    def write(obj: Map[String, V]): JValue = JObject(obj.map({case (k, v) => k -> valueWriter.write(v)}).toList)
   }
   implicit object JValueWriter extends W[JValue](identity)
   implicit def OptionWriter[T](implicit valueWriter: Writer[T]): Writer[Option[T]] = new Writer[Option[T]] {
-    def write(obj: Option[T]): _root_.org.json4s.JValue = obj match {
+    def write(obj: Option[T]): JValue = obj match {
       case Some(v) => valueWriter.write(v)
       case _ => JNull
     }
@@ -236,8 +237,8 @@ object DefaultJsonFormats extends DoubleJsonFormats
 trait DefaultJsonFormats {
 
   implicit def GenericFormat[T](implicit reader: Reader[T], writer: Writer[T]): JsonFormat[T] = new JsonFormat[T] {
-    def write(obj: T): _root_.org.json4s.JValue = writer.write(obj)
-    def read(value: _root_.org.json4s.JValue): T = reader.read(value)
+    def write(obj: T): JValue = writer.write(obj)
+    def read(value: JValue): T = reader.read(value)
   }
 }
 

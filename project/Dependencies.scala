@@ -14,7 +14,7 @@ object Dependencies {
 
   /* stop stealing */
 
-  lazy val scalaz_core = "org.scalaz" %% "scalaz-core" % "7.0.0-M9"
+  lazy val scalaz_core = "org.scalaz" %% "scalaz-core" % "7.0.0-RC1"
 
   val jodaTime = Seq("joda-time" % "joda-time" % "2.1", "org.joda" % "joda-convert" % "1.2")
 

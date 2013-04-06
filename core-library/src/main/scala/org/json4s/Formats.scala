@@ -24,6 +24,8 @@ import scala.collection.JavaConverters._
 import scala.util.DynamicVariable
 import annotation.implicitNotFound
 import java.lang.reflect.Type
+import JsonAST._
+
 
 object Formats {
   def read[T](json: JValue)(implicit reader: Reader[T]): T = reader.read(json)
@@ -164,13 +166,13 @@ trait Formats { self: Formats =>
     }
 
   def customDeserializer(implicit format: Formats) =
-    customSerializers.foldLeft(Map(): PartialFunction[(TypeInfo, JValue), Any]) { (acc, x) =>
+    customSerializers.foldLeft(Map(): PartialFunction[(reflect.TypeInfo, JValue), Any]) { (acc, x) =>
       acc.orElse(x.deserialize)
     }
 }
 
   trait Serializer[A] {
-    def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), A]
+    def deserialize(implicit format: Formats): PartialFunction[(reflect.TypeInfo, JValue), A]
     def serialize(implicit format: Formats): PartialFunction[Any, JValue]
   }
 
@@ -355,7 +357,7 @@ trait Formats { self: Formats =>
     val Class = implicitly[Manifest[A]].erasure
 
     def deserialize(implicit format: Formats) = {
-      case (TypeInfo(Class, _), json) =>
+      case (reflect.TypeInfo(Class, _), json) =>
         if (ser(format)._1.isDefinedAt(json)) ser(format)._1(json)
         else throw new MappingException("Can't convert " + json + " to " + Class)
     }

@@ -3,23 +3,19 @@ package native
 
 import text.Document
 import text.Document._
-import io.Source
+import scala.io.Source
+import scala.util.Try
 
 trait JsonMethods extends org.json4s.JsonMethods[Document] {
 
-  def parse(in: JsonInput, useBigDecimalForDouble: Boolean = false): JValue = in match {
-    case StringInput(s) => JsonParser.parse(s, useBigDecimalForDouble)
-    case ReaderInput(rdr) => JsonParser.parse(rdr, useBigDecimalForDouble)
-    case StreamInput(stream) => JsonParser.parse(Source.fromInputStream(stream).bufferedReader(), useBigDecimalForDouble)
-    case FileInput(file) => JsonParser.parse(Source.fromFile(file).bufferedReader(), useBigDecimalForDouble)
-  }
+  def parse(in: JsonInput, useBigDecimalForDouble: Boolean = false): JValue =
+    JsonParser.parse(in, useBigDecimalForDouble = useBigDecimalForDouble)
 
-  def parseOpt(in: JsonInput, useBigDecimalForDouble: Boolean = false): Option[JValue] = in match {
-    case StringInput(s) => JsonParser.parseOpt(s, useBigDecimalForDouble)
-    case ReaderInput(rdr) => JsonParser.parseOpt(rdr, useBigDecimalForDouble)
-    case StreamInput(stream) => JsonParser.parseOpt(Source.fromInputStream(stream).bufferedReader(), useBigDecimalForDouble)
-    case FileInput(file) => JsonParser.parseOpt(Source.fromFile(file).bufferedReader(), useBigDecimalForDouble)
-  }
+  def parseOpt(in: JsonInput, useBigDecimalForDouble: Boolean = false): Option[JValue] =
+    JsonParser.parseOpt(in, useBigDecimalForDouble = useBigDecimalForDouble)
+
+  def tryParse(in: JsonInput, useBigDecimalForDouble: Boolean = false): Try[JValue] =
+    JsonParser.tryParse(in, useBigDecimalForDouble = useBigDecimalForDouble)
 
   /** Renders JSON.
    * @see Printer#compact
@@ -42,12 +38,12 @@ trait JsonMethods extends org.json4s.JsonMethods[Document] {
       text("{") :: nest(2, nested) :: break :: text("}")
   }
 
-  private def trimArr(xs: List[JValue]) = xs.filter(_ != JNothing)
-  private def trimObj(xs: List[JField]) = xs.filter(_._2 != JNothing)
-  private def series(docs: List[Document]) = punctuate(text(","), docs)
-  private def fields(docs: List[Document]) = punctuate(text(",") :: break, docs)
+  private[this] def trimArr(xs: List[JValue]) = xs.filter(_ != JNothing)
+  private[this] def trimObj(xs: List[JField]) = xs.filter(_._2 != JNothing)
+  private[this] def series(docs: List[Document]) = punctuate(text(","), docs)
+  private[this] def fields(docs: List[Document]) = punctuate(text(",") :: break, docs)
 
-  private def punctuate(p: Document, docs: List[Document]): Document =
+  private[this] def punctuate(p: Document, docs: List[Document]): Document =
     if (docs.length == 0) empty
     else docs.reduceLeft((d1, d2) => d1 :: p :: d2)
 

@@ -19,6 +19,7 @@ package native
 
 import scala.reflect.Manifest
 import java.io.BufferedWriter
+import io.{BufferRecycler, SegmentedStringWriter}
 
 /** Functions to serialize and deserialize a case class.
  * Custom serializer can be inserted if a class is not a case class.
@@ -35,7 +36,7 @@ object Serialization extends Serialization  {
   /** Serialize to String.
    */
   def write[A <: AnyRef](a: A)(implicit formats: Formats): String = {
-    (write(a, new StringWriter)(formats)).toString
+    (write(a, new SegmentedStringWriter(new BufferRecycler()))(formats)).toString
   }
 
   /** Serialize to Writer.
@@ -47,7 +48,7 @@ object Serialization extends Serialization  {
   /** Serialize to String (pretty format).
    */
   def writePretty[A <: AnyRef](a: A)(implicit formats: Formats): String =
-    (writePretty(a, new StringWriter)(formats)).toString
+    (writePretty(a, new SegmentedStringWriter(new BufferRecycler()))(formats)).toString
 
   /** Serialize to Writer (pretty format).
    */
@@ -69,7 +70,7 @@ object Serialization extends Serialization  {
   /** Deserialize from a String.
    */
   def read[A](json: String)(implicit formats: Formats, mf: Manifest[A]): A = {
-    JsonParser.parse(json, formats.wantsBigDecimal).extract(formats, mf)
+    JsonMethods.parse(json, formats.wantsBigDecimal).extract[A]
   }
 
   @deprecated("You can use formats now to indicate you want to use decimals instead of doubles", "3.2.0")

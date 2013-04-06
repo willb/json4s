@@ -10,7 +10,7 @@ import org.specs2.mutable.Specification
 object PullParserExamples extends Specification {
 
   import native.JsonParser
-  import JsonParser._
+  import Parser._
 
   "A JSON Pull Parser" should {
     "Pull parsing example" in {

@@ -1,5 +1,7 @@
 package org.json4s
 
+import JsonAST._
+
 /**
  * Serializer which serializes all fields of a class too.
  *

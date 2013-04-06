@@ -16,10 +16,6 @@
 
 package org.json4s
 
-import java.util.Locale.ENGLISH
-import java.io.StringWriter
-import collection.immutable
-
 object JsonAST {
 
   /**
@@ -30,54 +26,6 @@ object JsonAST {
    * </pre>
    */
   def concat(xs: JValue*) = xs.foldLeft(JNothing: JValue)(_ ++ _)
-
-//  sealed abstract class JsValue[+T] extends immutable.Seq[T] {
-//    def values: T
-//  }
-//  private trait SingleElementJsValue[+T] extends JsValue[T] {
-//    def length: Int = 1
-//    def apply(idx: Int): T = if (idx == 0) values else throw new IndexOutOfBoundsException("A JsString only has 1 element")
-//    def iterator: Iterator[T] = Iterator(values)
-//    override def isEmpty: Boolean = false
-//    override def head = values
-//    override def tail: immutable.Seq[T] = Nil
-//    override protected[this] def reversed: List[T] = List(values)
-//    override def nonEmpty: Boolean = true
-//  }
-//
-//  class JsString(val values: String) extends SingleElementJsValue[String]
-//  class JsInt(val values: BigInt) extends SingleElementJsValue[BigInt]
-//  class JsDecimal(val values: BigDecimal) extends SingleElementJsValue[BigDecimal]
-//  class JsBool(val values: Boolean) extends SingleElementJsValue[Boolean]
-//  object JsNull extends SingleElementJsValue[Null] { val values: Null = null }
-//
-//  class JsObject(val values: Seq[(String, JsValue[_])]) extends JsValue[(String, JsValue[_])] {
-//    def length: Int = values.length
-//    def apply(idx: Int): (String, JsValue[_]) = values(idx)
-//    def iterator: Iterator[(String, JsValue[_])] = values.iterator
-//  }
-//  class JsArray(val values: Seq[JsValue[_]]) extends JsValue[JsValue[_]] {
-//    def length: Int = values.length
-//    def apply(idx: Int): JsValue[_] = values.apply(idx)
-//    def iterator: Iterator[JsValue[_]] = values.iterator
-//  }
-//  object JsNothing extends JsValue[Nothing] {
-//    val values: Nothing = null.asInstanceOf[Nothing]
-//    val length: Int = 0
-//    def apply(idx: Int): Nothing = throw new IndexOutOfBoundsException("A JsNothing is empty")
-//    def iterator: Iterator[Nothing] = Iterator()
-//
-//    override def isEmpty = true
-//    override def head: Nothing =
-//      throw new NoSuchElementException("head of JsNothing")
-//    override def tail: List[Nothing] =
-//      throw new UnsupportedOperationException("tail of JsNothing")
-//    // Removal of equals method here might lead to an infinite recursion similar to IntMap.equals.
-//    override def equals(that: Any) = that match {
-//      case that1: JsValue[_] => that1.isEmpty
-//      case _ => false
-//    }
-//  }
 
   object JValue extends Merge.Mergeable
 
@@ -172,7 +120,8 @@ object JsonAST {
     type Values = String
     def values = s
   }
-  trait JNumber
+
+  trait JNumber { self: JValue => }
   case class JDouble(num: Double) extends JValue with JNumber {
     type Values = Double
     def values = num
@@ -226,26 +175,28 @@ object JsonAST {
     def append(s: String): StringBuilder = subj.append(s)
   }
 
-  private[json4s] def quote(s: String): String = quote(s, new StringBuilderAppender(new StringBuilder)).toString
+  private[json4s] def quote(s: String): String = quote(s, new StringBuilderAppender(new StringBuilder)).toString()
   private[json4s] def quote(s: String, writer: java.io.Writer): java.io.Writer = quote(s, new StringWriterAppender(writer))
-  private[this] def quote[T](s: String, appender: StringAppender[T]): T = { // hot path
-    var i = 0
+  private[this] def quote[T](s: String, writer: StringAppender[T]): T = { // hot path
+    var i: Int = 0
+    var begin = 0
     val l = s.length
+    @inline def append(str: String) = { writer.append(s.substring(begin,i)); begin = i+1; writer.append(s"\\$str") }
     while(i < l) {
-      val c = s(i)
-      if (c == '"') appender.append("\\\"")
-      else if (c == '\\') appender.append("\\\\")
-      else if (c == '\b') appender.append("\\b")
-      else if (c == '\f') appender.append("\\f")
-      else if (c == '\n') appender.append("\\n")
-      else if (c == '\r') appender.append("\\r")
-      else if (c == '\t') appender.append("\\t")
+      val c = s.charAt(i)
+      if (c == '"') append("\"")
+      else if (c == '\\') append("\\")
+      else if (c == '\b') append("b")
+      else if (c == '\f') append("f")
+      else if (c == '\n') append("n")
+      else if (c == '\r') append("r")
+      else if (c == '\t') append("t")
       else if ((c >= '\u0000' && c < '\u001f') || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100'))
-        appender.append("\\u%04x".format(c: Int))
-      else appender.append(c.toString)
-      i += 1
+        append("u%04x".format(c: Int))
+      i+=1
     }
-    appender.subj
+    writer.append(s.substring(begin,i))
+    writer.subj
   }
 }
 

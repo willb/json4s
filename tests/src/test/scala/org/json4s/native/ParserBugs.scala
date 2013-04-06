@@ -14,8 +14,8 @@ object ParserBugs extends Specification {
     }
 
     "Does not hang when parsing 2.2250738585072012e-308" in {
-      allCatch.opt(parse(""" [ 2.2250738585072012e-308 ] """)) must_== None
-      allCatch.opt(parse(""" [ 22.250738585072012e-309 ] """)) must_== None
+      allCatch.opt(parse(""" [ 2.2250738585072012e-308 ] """)) must beSome[JValue]
+      allCatch.opt(parse(""" [ 22.250738585072012e-309 ] """)) must beSome[JValue]
     }
 
     "Does not allow colon at start of array (1039)" in {
@@ -40,10 +40,10 @@ object ParserBugs extends Specification {
     }
   }
 
-  private val discardParser = (p : JsonParser.Parser) => {
-     var token: JsonParser.Token = null
+  private val discardParser = (p : Parser) => {
+     var token: Parser.Token = null
      do {
        token = p.nextToken
-     } while (token != JsonParser.End)
+     } while (token != Parser.End)
    }
 }

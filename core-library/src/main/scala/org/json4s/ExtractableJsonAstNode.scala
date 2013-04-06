@@ -1,5 +1,7 @@
 package org.json4s
 
+import JsonAST._
+
 class ExtractableJsonAstNode(jv: JValue) {
   /**
    * Extract a value from a JSON.

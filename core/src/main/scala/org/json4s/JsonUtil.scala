@@ -1,6 +1,7 @@
 package org.json4s
 
 import java.io.StringWriter
+import JsonAST._
 
 abstract class JsonUtil(fmts: Formats) {
 

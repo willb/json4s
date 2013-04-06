@@ -2,7 +2,7 @@ package org.json4s
 package reflect
 
 import java.lang.reflect.{Constructor => JConstructor, Type, Field, TypeVariable}
-import scala._
+import JsonAST._
 
 sealed trait Descriptor
 object ScalaType {
