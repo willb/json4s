@@ -2,6 +2,7 @@ package org.json4s
 
 
 import org.specs2.mutable.Specification
+import java.io.StringReader
 
 
 /**
@@ -27,7 +28,7 @@ object PullParserExamples extends Specification {
         parse
       }
 
-      val postalCode = JsonParser.parse(json, parser)
+      val postalCode = JsonParser.parse(new StringReader(json), parser)
       postalCode must_== 10021
     }
   }

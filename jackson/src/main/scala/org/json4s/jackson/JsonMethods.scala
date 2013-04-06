@@ -4,6 +4,7 @@ package jackson
 import com.fasterxml.jackson.databind.{ObjectMapper, DeserializationFeature}
 import util.control.Exception.allCatch
 import scala.util.Try
+import scala.io.Source
 
 trait JsonMethods extends org.json4s.JsonMethods[JValue] {
 
@@ -15,18 +16,20 @@ trait JsonMethods extends org.json4s.JsonMethods[JValue] {
   def mapper = _defaultMapper
 
   def parse(in: JsonInput, useBigDecimalForDouble: Boolean = false): JValue = {
-    val pm = new JsonParserMeta(mapper.getFactory)
-    pm.parse(in, useBigDecimalForDouble = useBigDecimalForDouble)
+    mapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, useBigDecimalForDouble)
+    in match {
+      case StringInput(s)      => mapper.readValue(s, classOf[JValue])
+      case ReaderInput(rdr)    => mapper.readValue(rdr, classOf[JValue])
+      case StreamInput(stream) => mapper.readValue(stream, classOf[JValue])
+      case FileInput(file)     => mapper.readValue(file, classOf[JValue])
+    }
   }
 
-  def parseOpt(in: JsonInput, useBigDecimalForDouble: Boolean = false): Option[JValue] = {
-    val pm = new JsonParserMeta(mapper.getFactory)
-    pm.parseOpt(in, useBigDecimalForDouble = useBigDecimalForDouble)
-  }
+  def parseOpt(in: JsonInput, useBigDecimalForDouble: Boolean = false): Option[JValue] =
+    tryParse(in, useBigDecimalForDouble).toOption
 
   def tryParse(in: JsonInput, useBigDecimalForDouble: Boolean = false): Try[JValue] = {
-    val pm = new JsonParserMeta(mapper.getFactory)
-    pm.tryParse(in, useBigDecimalForDouble = useBigDecimalForDouble)
+    Try(parse(in, useBigDecimalForDouble))
   }
 
   def render(value: JValue): JValue = value

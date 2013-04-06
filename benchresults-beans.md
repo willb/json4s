@@ -13,43 +13,43 @@ Jackson AST (parse)               603ms
 Jackson AST (ser)                  26ms  
   
 ### Json4s direct AST
-json4s-native AST (parse)         759ms  
-json4s-jackson AST (parse)        509ms  
-json4s-native AST (ser)           401ms  
-json4s-jackson AST (ser)           89ms  
+json4s-native AST (parse)         807ms  
+json4s-jackson AST (parse)        506ms  
+json4s-native AST (ser)           199ms  
+json4s-jackson AST (ser)           84ms  
 
 ### Custom serializer
-json4s-native (full)              760ms  
-json4s-jackson (full)             535ms  
-json4s-native (ser)               391ms  
+json4s-native (full)              514ms  
+json4s-jackson (full)             551ms  
+json4s-native (ser)               171ms  
 json4s-jackson (ser)              196ms  
-json4s-native (deser)             298ms  
-json4s-jackson (deser)            279ms  
-json4s-native old pretty          600ms  
+json4s-native (deser)             302ms  
+json4s-jackson (deser)            297ms  
+json4s-native old pretty          390ms  
 
 ### No type hints
-json4s-native (full)             1053ms  
-json4s-jackson (full)             833ms  
-json4s-native (ser)               507ms  
-json4s-jackson (ser)              327ms  
-json4s-native (deser)             460ms  
-json4s-jackson (deser)            438ms  
-json4s-native old pretty          765ms  
-
+json4s-native (full)              726ms  
+json4s-jackson (full)             767ms  
+json4s-native (ser)               245ms  
+json4s-jackson (ser)              306ms  
+json4s-native (deser)             394ms  
+json4s-jackson (deser)            401ms  
+json4s-native old pretty          514ms  
+  
 ### Short type hints
-json4s-native (full)             1660ms  
-json4s-jackson (full)            1369ms  
-json4s-native (ser)               703ms  
-json4s-jackson (ser)              414ms  
-json4s-native (deser)             816ms  
-json4s-jackson (deser)            796ms  
-json4s-native old pretty         1030ms  
+json4s-native (full)             1137ms  
+json4s-jackson (full)            1199ms  
+json4s-native (ser)               322ms  
+json4s-jackson (ser)              397ms  
+json4s-native (deser)             693ms  
+json4s-jackson (deser)            683ms  
+json4s-native old pretty          670ms  
 
 ### Full type hints
-json4s-native (full)             2183ms  
-json4s-jackson (full)            1874ms  
-json4s-native (ser)              1052ms  
-json4s-jackson (ser)              617ms  
-json4s-native (deser)             970ms  
-json4s-jackson (deser)            945ms  
-json4s-native old pretty         1359ms  
+json4s-native (full)             1429ms  
+json4s-jackson (full)            1479ms  
+json4s-native (ser)               537ms  
+json4s-jackson (ser)              605ms  
+json4s-native (deser)             796ms  
+json4s-jackson (deser)            782ms  
+json4s-native old pretty          897ms  

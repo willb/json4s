@@ -35,79 +35,74 @@ object JsonParser extends ParserMeta {
    * @return the parsed json
    * @throws ParserUtil.ParseException is thrown if parsing fails
    */
-  def parse[A](in: JsonInput, parser: (json4s.Parser) => A, useBigDecimalForDouble: Boolean, closeAutomatically: Boolean): A = {
-    def newParser(r: java.io.Reader) =
-      new Parser(new ParserUtil.Buffer(r, closeAutomatically), useBigDecimalForDouble)
-    val dataSource = in match {
-      case StringInput(s) => newParser(new StringReader(s))
-      case ReaderInput(rdr) => newParser(rdr)
-      case StreamInput(stream) => newParser(Source.fromInputStream(stream).bufferedReader())
-      case FileInput(file) => newParser(Source.fromFile(file).bufferedReader())
-    }
+  def parse[A](in: java.io.Reader, parser: (json4s.Parser) => A, useBigDecimalForDouble: Boolean, closeAutomatically: Boolean): A = {
+    val dataSource = new Parser(new ParserUtil.Buffer(in, closeAutomatically), useBigDecimalForDouble)
     parser(dataSource)
   }
 
   private val EOF = (-1).asInstanceOf[Char]
+  private sealed abstract class BlockMode
+  private case object ARRAY extends BlockMode
+  private case object OBJECT extends BlockMode
 
   class Parser(buf: Buffer, useBigDecimalForDouble: Boolean) extends org.json4s.Parser {
-    import java.util.LinkedList
 
-    private[this] val blocks = new LinkedList[BlockMode]()
+    private[this] var blocks = List.empty[BlockMode]
     private[this] var fieldNameMode = true
 
     def fail(msg: String) = throw new ParseException(s"$msg\nNear: ${buf.near}", null)
 
+    private[this] def isDelimiter(c: Char) = c == ' ' || c == '\n' || c == ',' || c == '\r' || c == '\t' || c == '}' || c == ']'
 
+    private[this] def parseString: String =
+      try {
+        ParserUtil.unquote(buf)
+      } catch {
+        case p: ParseException => throw p
+        case _: Throwable => fail("unexpected string end")
+      }
+
+    private[this] val valueBuilder = new StringBuilder
+
+    private[this] def parseValue(first: Char) = {
+      var wasInt = true
+      var doubleVal = false
+      val s = valueBuilder
+      s.append(first)
+      while (wasInt) {
+        val c = buf.next
+        if (c == '.' || c == 'e' || c == 'E') {
+          doubleVal = true
+          s.append(c)
+        } else if (!(Character.isDigit(c) || c == '.' || c == 'e' || c == 'E' || c == '-' || c == '+')) {
+          wasInt = false
+          buf.back
+        } else s.append(c)
+      }
+      val value = s.toString
+      s.clear()
+      if (doubleVal) {
+        if (useBigDecimalForDouble) { BigDecimalVal(BigDecimal(value)) } else { DoubleVal(value.toDouble) }
+      } else IntVal(BigInt(value))
+    }
 
     /** Parse next Token from stream.
      */
     def nextToken: Token = {
-      def isDelimiter(c: Char) = c == ' ' || c == '\n' || c == ',' || c == '\r' || c == '\t' || c == '}' || c == ']'
-
-      def parseString: String = 
-        try {
-          ParserUtil.unquote(buf)
-        } catch {
-          case p: ParseException => throw p
-          case _: Throwable => fail("unexpected string end")
-        }
-
-      def parseValue(first: Char) = {
-        var wasInt = true
-        var doubleVal = false
-        val s = new StringBuilder
-        s.append(first)
-        while (wasInt) {
-          val c = buf.next
-          if (c == '.' || c == 'e' || c == 'E') {
-            doubleVal = true
-            s.append(c)
-          } else if (!(Character.isDigit(c) || c == '.' || c == 'e' || c == 'E' || c == '-' || c == '+')) {
-            wasInt = false
-            buf.back
-          } else s.append(c)
-        }
-        val value = s.toString
-        if (doubleVal) {
-          if (useBigDecimalForDouble) { BigDecimalVal(BigDecimal(value)) } else { DoubleVal(value.toDouble) }
-        }
-        else IntVal(BigInt(value))
-      }
-
       while (true) {
         val c = buf.next
         if (c == EOF) {
           buf.automaticClose
           return End
         } else if (c == '{') {
-          blocks.addFirst(OBJECT)
+          blocks ::= OBJECT
           fieldNameMode = true
           return OpenObj
         } else if (c == '}') {
-          blocks.poll
+          blocks = blocks.tail
           return CloseObj
         } else if (c == '"') {
-          if (fieldNameMode && blocks.peek == OBJECT) return FieldStart(parseString)
+          if (fieldNameMode && blocks.nonEmpty && blocks.head == OBJECT) return FieldStart(parseString)
           else {
             fieldNameMode = true
             return StringVal(parseString)
@@ -120,7 +115,6 @@ object JsonParser extends ParserMeta {
           fail("expected boolean")
         } else if (c == 'f') {
           fieldNameMode = true
-          fieldNameMode = true
            if (buf.next == 'a' && buf.next == 'l' && buf.next == 's' && buf.next == 'e') {
              return BoolVal(value = false)
            }
@@ -132,14 +126,14 @@ object JsonParser extends ParserMeta {
            }
            fail("expected null")
         } else if (c == ':') {
-          if (blocks.peek == ARRAY) fail("Colon in an invalid position")
+          if (blocks.nonEmpty && blocks.head == ARRAY) fail("Colon in an invalid position")
           fieldNameMode = false
         } else if (c == '[') {
-          blocks.addFirst(ARRAY)
+          blocks ::= ARRAY
           return OpenArr
         } else if (c == ']') {
           fieldNameMode = true
-          blocks.poll
+          blocks = blocks.tail
           return CloseArr
         } else if (Character.isDigit(c) || c == '-' || c == '+') {
           fieldNameMode = true
@@ -150,9 +144,7 @@ object JsonParser extends ParserMeta {
       End
     }
 
-    sealed abstract class BlockMode
-    case object ARRAY extends BlockMode
-    case object OBJECT extends BlockMode
+
   }
 
   

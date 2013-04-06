@@ -1,7 +1,7 @@
 package org.json4s
 
 import org.json4s.ParserUtil.{Buffer, ParseException}
-import java.io.StringReader
+import java.io.{File, InputStream, StringReader}
 import scala.util.Try
 
 object Parser {
@@ -20,26 +20,38 @@ object Parser {
   case object NullVal extends Token
   case object OpenArr extends Token
   case object CloseArr extends Token
+
+
 }
 
 private object ParserMeta {
   class ValStack(parser: Parser) {
-    import java.util.LinkedList
-    private[this] val stack = new LinkedList[Any]()
+//    import java.util.LinkedList
+    private[this] var stack = List.empty[Any]
 
-    def popAny = stack.poll
-    def pop[A](expectedType: Class[A]) = convert(stack.poll, expectedType)
-    def push(v: Any) = stack.addFirst(v)
-    def peekAny = stack.peek
-    def peek[A](expectedType: Class[A]) = convert(stack.peek, expectedType)
-    def replace[A](newTop: Any) = stack.set(0, newTop)
+    def popAny = {
+      val h :: t = stack
+      stack = t
+      h
+    }
+    def pop[A](expectedType: Class[A]) = convert(popAny, expectedType)
+    def push(v: Any) = {
+      stack = v :: stack
+      stack
+    }
+    def peekAny = stack.head
+    def peek[A](expectedType: Class[A]) = convert(stack.head, expectedType)
+    def replace[A](newTop: Any) = {
+      stack = newTop :: stack.tail
+      stack
+    }
 
     private def convert[A](x: Any, expectedType: Class[A]): A = {
       if (x == null) parser.fail("expected object or array")
       try { x.asInstanceOf[A] } catch { case _: ClassCastException => parser.fail(s"unexpected $x") }
     }
 
-    def peekOption = if (stack isEmpty) None else Some(stack.peek)
+    def peekOption = stack.headOption
   }
 }
 
@@ -68,33 +80,58 @@ trait ParserMeta {
   val OpenArr = org.json4s.Parser.OpenArr
   val CloseArr = org.json4s.Parser.CloseArr
 
-  def parse(in: JsonInput): JValue =
-    parse(in, useBigDecimalForDouble = false)
+  def parse(in: String): JValue =
+    parse(new StringReader(in), astParser(_, false), useBigDecimalForDouble = false, closeAutomatically = true)
+  def parse(in: java.io.Reader): JValue =
+    parse(in, astParser(_, false), useBigDecimalForDouble = false, closeAutomatically = true)
 
-  def parseOpt(in: JsonInput): Option[JValue] =
-    parseOpt(in, useBigDecimalForDouble = false)
+  def parseOpt(in: String): Option[JValue] =
+    parseOpt(new StringReader(in), astParser(_, false), useBigDecimalForDouble = false, closeAutomatically = true)
 
-  def tryParse(in: JsonInput): Try[JValue] =
-    tryParse(in, useBigDecimalForDouble = false)
+  def parseOpt(in: java.io.Reader): Option[JValue] =
+    parseOpt(in, astParser(_, false), useBigDecimalForDouble = false, closeAutomatically = true)
 
-  def parse(in: JsonInput, useBigDecimalForDouble: Boolean): JValue =
-    parse(in, astParser(_, useBigDecimalForDouble), useBigDecimalForDouble)
+  def tryParse(in: String): Try[JValue] =
+    tryParse(new StringReader(in), astParser(_, false), useBigDecimalForDouble = false, closeAutomatically = true)
 
-  def parseOpt(in: JsonInput, useBigDecimalForDouble: Boolean): Option[JValue] =
-    parseOpt(in, astParser(_, useBigDecimalForDouble), useBigDecimalForDouble)
+  def tryParse(in: java.io.Reader): Try[JValue] =
+    tryParse(in, astParser(_, false), useBigDecimalForDouble = false, closeAutomatically = true)
 
-  def tryParse(in: JsonInput, useBigDecimalForDouble: Boolean): Try[JValue] =
-    tryParse(in, astParser(_, useBigDecimalForDouble), useBigDecimalForDouble)
+  def parse(in: String, useBigDecimalForDouble: Boolean): JValue =
+    parse(new StringReader(in), astParser(_, useBigDecimalForDouble), useBigDecimalForDouble, closeAutomatically = true)
 
-  def parse(in: JsonInput, useBigDecimalForDouble: Boolean, closeAutomatically: Boolean): JValue =
+  def parse(in: java.io.Reader, useBigDecimalForDouble: Boolean): JValue =
+    parse(in, astParser(_, useBigDecimalForDouble), useBigDecimalForDouble, closeAutomatically = true)
+
+  def parseOpt(in: String, useBigDecimalForDouble: Boolean): Option[JValue] =
+    parseOpt(new StringReader(in), astParser(_, useBigDecimalForDouble), useBigDecimalForDouble, closeAutomatically = true)
+
+  def parseOpt(in: java.io.Reader, useBigDecimalForDouble: Boolean): Option[JValue] =
+    parseOpt(in, astParser(_, useBigDecimalForDouble), useBigDecimalForDouble, closeAutomatically = true)
+
+  def tryParse(in: String, useBigDecimalForDouble: Boolean): Try[JValue] =
+    tryParse(new StringReader(in), useBigDecimalForDouble, closeAutomatically = true)
+
+  def tryParse(in: java.io.Reader, useBigDecimalForDouble: Boolean): Try[JValue] =
+    tryParse(in, astParser(_, useBigDecimalForDouble), useBigDecimalForDouble, closeAutomatically = true)
+
+  def parse(in: String, useBigDecimalForDouble: Boolean, closeAutomatically: Boolean): JValue =
+    parse(new StringReader(in), astParser(_, useBigDecimalForDouble), useBigDecimalForDouble, closeAutomatically)
+
+  def parse(in: java.io.Reader, useBigDecimalForDouble: Boolean, closeAutomatically: Boolean): JValue =
     parse(in, astParser(_, useBigDecimalForDouble), useBigDecimalForDouble, closeAutomatically)
 
-  def parseOpt(in: JsonInput, useBigDecimalForDouble: Boolean, closeAutomatically: Boolean): Option[JValue] =
+  def parseOpt(in: String, useBigDecimalForDouble: Boolean, closeAutomatically: Boolean): Option[JValue] =
+    parseOpt(new StringReader(in), astParser(_, useBigDecimalForDouble), useBigDecimalForDouble, closeAutomatically)
+
+  def parseOpt(in: java.io.Reader, useBigDecimalForDouble: Boolean, closeAutomatically: Boolean): Option[JValue] =
     parseOpt(in, astParser(_, useBigDecimalForDouble), useBigDecimalForDouble, closeAutomatically)
 
-  def tryParse(in: JsonInput, useBigDecimalForDouble: Boolean, closeAutomatically: Boolean): Try[JValue] =
-    tryParse(in, astParser(_, useBigDecimalForDouble), useBigDecimalForDouble, closeAutomatically)
+  def tryParse(in: String, useBigDecimalForDouble: Boolean, closeAutomatically: Boolean): Try[JValue] =
+    tryParse(new StringReader(in), astParser(_, useBigDecimalForDouble), useBigDecimalForDouble, closeAutomatically)
 
+  def tryParse(in: java.io.Reader, useBigDecimalForDouble: Boolean, closeAutomatically: Boolean): Try[JValue] =
+    tryParse(in, astParser(_, useBigDecimalForDouble), useBigDecimalForDouble, closeAutomatically)
   /**
    * Return parsed JSON.
    * @param in The input source of the json
@@ -104,12 +141,12 @@ trait ParserMeta {
    * @return the parsed json
    * @throws ParseException is thrown if parsing fails
    */
-  def parse[A](in: JsonInput, parser: Parser => A, useBigDecimalForDouble: Boolean = false, closeAutomatically: Boolean = true): A
+  def parse[A](in: java.io.Reader, parser: Parser => A, useBigDecimalForDouble: Boolean = false, closeAutomatically: Boolean = true): A
 
-  def parseOpt[A](in: JsonInput, parser: Parser => A, useBigDecimalForDouble: Boolean = false, closeAutomatically: Boolean = true): Option[A] =
+  def parseOpt[A](in: java.io.Reader, parser: Parser => A, useBigDecimalForDouble: Boolean = false, closeAutomatically: Boolean = true): Option[A] =
     tryParse(in, parser, useBigDecimalForDouble).toOption
 
-  def tryParse[A](in: JsonInput, parser: Parser => A, useBigDecimalForDouble: Boolean = false, closeAutomatically: Boolean = true): Try[A] =
+  def tryParse[A](in: java.io.Reader, parser: Parser => A, useBigDecimalForDouble: Boolean = false, closeAutomatically: Boolean = true): Try[A] =
     Try(parse(in, parser, useBigDecimalForDouble))
 
   protected val astParser = (p: Parser, useBigDecimal: Boolean) => {

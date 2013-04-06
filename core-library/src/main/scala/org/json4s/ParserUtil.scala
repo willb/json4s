@@ -1,5 +1,8 @@
 package org.json4s
 
+import scala.annotation.switch
+import java.util.concurrent.LinkedBlockingQueue
+
 object ParserUtil {
 
   class ParseException(message: String, cause: Exception) extends Exception(message, cause)
@@ -8,8 +11,8 @@ object ParserUtil {
     unquote(new Buffer(new java.io.StringReader(string), false))
 
   private[json4s] def unquote(buf: Buffer): String = {
-    def unquote0(buf: Buffer, base: String): String = {
-      val s = new java.lang.StringBuilder(base)
+    def unquote0(buf: Buffer, sb: java.lang.StringBuilder): String = {
+      val s = sb
       var c = '\\'
       while (c != '"') {
         if (c == '\\') {
@@ -38,7 +41,7 @@ object ParserUtil {
     var c = buf.next
     while (c != '"') {
       if (c == '\\') {
-        val s = unquote0(buf, buf.substring)
+        val s = unquote0(buf, new java.lang.StringBuilder(buf.substring))
         buf.eofIsFailure = false
         return s
       }
@@ -133,7 +136,7 @@ object ParserUtil {
     var segmentSize = 1000
     private[this] val maxNumOfSegments = 10000
     private[this] val segmentCount = new AtomicInteger(0)
-    private[this] val segments = new ArrayBlockingQueue[Segment](maxNumOfSegments)
+    private[this] val segments = new LinkedBlockingQueue[Segment](maxNumOfSegments)
     def clear = segments.clear
 
     def apply(): Segment = {

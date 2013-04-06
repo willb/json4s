@@ -18,18 +18,10 @@ class JsonParserMeta(factory: JsonFactory) extends ParserMeta {
    * @return the parsed json
    * @throws Parserutil.ParseException is thrown if parsing fails
    */
-  def parse[A](in: JsonInput, parser: (Parser) => A, useBigDecimalForDouble: Boolean = false, closeAutomatically: Boolean = true): A = {
-    def newParser(pp: JacksonParser) = {
-      pp.configure(JacksonParser.Feature.AUTO_CLOSE_SOURCE, closeAutomatically)
-      new JsonParser(pp, useBigDecimalForDouble)
-    }
-    val dataSource = in match {
-      case StringInput(s) => newParser(factory.createParser(s))
-      case ReaderInput(rdr) => newParser(factory.createParser(rdr))
-      case StreamInput(stream) => newParser(factory.createParser(stream))
-      case FileInput(file) => newParser(factory.createParser(file))
-    }
-    parser(dataSource)
+  def parse[A](in: java.io.Reader, parser: (Parser) => A, useBigDecimalForDouble: Boolean = false, closeAutomatically: Boolean = true): A = {
+    val pp = factory.createParser(in)
+    pp.configure(JacksonParser.Feature.AUTO_CLOSE_SOURCE, closeAutomatically)
+    parser(new JsonParser(pp, useBigDecimalForDouble))
   }
 }
 

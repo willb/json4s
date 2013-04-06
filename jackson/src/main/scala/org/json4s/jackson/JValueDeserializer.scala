@@ -2,12 +2,12 @@ package org.json4s.jackson
 
 import com.fasterxml.jackson.databind.`type`.TypeFactory
 import com.fasterxml.jackson.databind.{DeserializationFeature, DeserializationContext, JsonDeserializer}
-import com.fasterxml.jackson.core.{FormatSchema, JsonToken, JsonParser}
+import com.fasterxml.jackson.core.{FormatSchema, JsonToken, JsonParser => JacksonJsonParser}
 import collection.mutable
-import org.json4s._
+import org.json4s.JsonAST._
 
 class JValueDeserializer(factory: TypeFactory, klass: Class[_]) extends JsonDeserializer[Object] {
-  def deserialize(jp: JsonParser, ctxt: DeserializationContext): Object = {
+  def deserialize(jp: JacksonJsonParser, ctxt: DeserializationContext): Object = {
 
     if (jp.getCurrentToken == null) jp.nextToken()
 

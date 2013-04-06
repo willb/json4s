@@ -8,14 +8,19 @@ import scala.util.Try
 
 trait JsonMethods extends org.json4s.JsonMethods[Document] {
 
-  def parse(in: JsonInput, useBigDecimalForDouble: Boolean = false): JValue =
-    JsonParser.parse(in, useBigDecimalForDouble = useBigDecimalForDouble)
+  def parse(in: JsonInput, useBigDecimalForDouble: Boolean = false): JValue = in match {
+    case StringInput(s)      => JsonParser.parse(s, useBigDecimalForDouble)
+    case ReaderInput(rdr)    => JsonParser.parse(rdr, useBigDecimalForDouble)
+    case StreamInput(stream) => JsonParser.parse(Source.fromInputStream(stream).bufferedReader(), useBigDecimalForDouble)
+    case FileInput(file)     => JsonParser.parse(Source.fromFile(file).bufferedReader(), useBigDecimalForDouble)
+  }
+
 
   def parseOpt(in: JsonInput, useBigDecimalForDouble: Boolean = false): Option[JValue] =
-    JsonParser.parseOpt(in, useBigDecimalForDouble = useBigDecimalForDouble)
+    tryParse(in, useBigDecimalForDouble).toOption
 
   def tryParse(in: JsonInput, useBigDecimalForDouble: Boolean = false): Try[JValue] =
-    JsonParser.tryParse(in, useBigDecimalForDouble = useBigDecimalForDouble)
+    Try(parse(in, useBigDecimalForDouble))
 
   /** Renders JSON.
    * @see Printer#compact
