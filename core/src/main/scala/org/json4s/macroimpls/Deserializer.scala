@@ -26,8 +26,30 @@ object Deserializer {
   def extract[U](jvalue: JValue)(implicit defaultFormats: Formats) = macro extract_impl[U]
   def extract_impl[U: c.WeakTypeTag](c: Context)(jvalue: c.Expr[JValue])(defaultFormats: c.Expr[Formats]): c.Expr[U] = {
     import c.universe._
-    val reader = reify(macro_readers.AstReader(jvalue.splice))
-    deserialize_impl[U](c)(reader)(defaultFormats)
+
+    val tpe = weakTypeOf[U]
+    val tpeStr = c.Expr[String](Literal(Constant(tpe.toString())))
+
+    tpe match {
+      case tpe if tpe =:= typeOf[String] => reify( jvalue.splice match {
+        case JString(str) => str.asInstanceOf[U]
+        case e => sys.error(s"Type $e is not of type 'String'")
+      })
+
+      case tpe if tpe =:= typeOf[Date] => reify ( jvalue.splice match {
+        case JString(str) => defaultFormats.splice.dateFormat.parse(str).asInstanceOf[U]
+        case e =>  sys.error(s"Type $e is not of type 'String' so cant parse Date")
+      })
+
+      case tpe if tpe =:= typeOf[Int] => reify ( jvalue.splice match {
+        case JInt(i) => i.toInt.asInstanceOf[U]
+        case e => sys.error(s"Type $e is not of type 'Int'")
+      })
+
+      case _ =>
+        val reader = reify(macro_readers.AstReader(jvalue.splice))
+        deserialize_impl[U](c)(reader)(defaultFormats)
+    }
   }
 
   // The meat and potatoes of the implementation.
@@ -157,11 +179,20 @@ object Deserializer {
 
     def buildPrimitive(tpe: Type, field: c.Expr[String], reader: c.Expr[JsonObjectReader]) = {
       if      (tpe =:= typeOf[Int])         reify {reader.splice.getInt(field.splice)    }.tree
+        // TODO: type Byte and Char
+      else if (tpe =:= typeOf[Short])       reify {reader.splice.getInt(field.splice).asInstanceOf[Short]}.tree
+      else if (tpe =:= typeOf[Byte])        reify {reader.splice.getInt(field.splice).asInstanceOf[Byte] }.tree
       else if (tpe =:= typeOf[Long])        reify { reader.splice.getLong(field.splice)  }.tree
       else if (tpe =:= typeOf[Float])       reify { reader.splice.getFloat(field.splice) }.tree
       else if (tpe =:= typeOf[Double])      reify { reader.splice.getDouble(field.splice)}.tree
       else if (tpe =:= typeOf[Boolean])      reify { reader.splice.getBool(field.splice)}.tree
       else if (tpe =:= typeOf[String])      { rparseString(field, reader).tree }
+      else if (tpe =:= typeOf[Char])        reify {
+        val str = rparseString(field, reader).splice
+        if (str.length != 1)
+          throw new IllegalStateException(s"String $str is too long to be converted to Char")
+        str.charAt(0)
+      }.tree
       else if (tpe =:= typeOf[Date])         { rparseDate(field, reader).tree   }
       else if (tpe =:= typeOf[scala.Symbol]) { rparseSymbol(field, reader).tree }
       else throw new java.lang.NoSuchFieldException(s"Type '$tpe' is not a primitive!")
@@ -169,10 +200,17 @@ object Deserializer {
 
     def buildPrimitiveOpt(tpe: Type, field: c.Expr[String], reader: c.Expr[JsonObjectReader]): c.Expr[Option[_]] = {
       if      (tpe =:= typeOf[Int])         reify {reader.splice.optInt(field.splice)     }
+      else if (tpe =:= typeOf[Short])       reify {reader.splice.optInt(field.splice).map(_.asInstanceOf[Short])}
+      else if (tpe =:= typeOf[Byte])       reify {reader.splice.optInt(field.splice).map(_.asInstanceOf[Byte])}
       else if (tpe =:= typeOf[Long])        reify { reader.splice.optLong(field.splice)   }
       else if (tpe =:= typeOf[Float])       reify { reader.splice.optFloat(field.splice)  }
       else if (tpe =:= typeOf[Double])      reify { reader.splice.optDouble(field.splice) }
       else if (tpe =:= typeOf[String])      reify { reader.splice.optString(field.splice) }
+      else if (tpe =:= typeOf[Char])      reify { reader.splice.optString(field.splice).map{ str =>
+        if (str.length != 1)
+          throw new IllegalStateException(s"String $str is too long to be converted to Char")
+        str.charAt(0)
+      } }
       else if (tpe =:= typeOf[Boolean])     reify { reader.splice.optBool(field.splice)   }
       else if (tpe =:= typeOf[Date])         reify {
         reader.splice.optString(field.splice).flatMap(defaultFormats.splice.dateFormat.parse(_))
