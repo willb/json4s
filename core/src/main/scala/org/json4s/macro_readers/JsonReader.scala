@@ -18,6 +18,8 @@ sealed trait JsonReader {
 trait JsonObjectReader extends JsonReader {
   def getKeys: Seq[String]
 
+  def hasKey(str: String) = getKeys.exists( _ == str)
+
   // Option forms
   def optObjectReader(key: String): Option[JsonObjectReader]
   def optArrayReader(key: String): Option[JsonArrayIterator]
