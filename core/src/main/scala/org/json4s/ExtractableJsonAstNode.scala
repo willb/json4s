@@ -1,6 +1,16 @@
 package org.json4s
 
-class ExtractableJsonAstNode(jv: JValue) {
+import language.experimental.macros
+import scala.reflect.macros.{Context => MacroContext}
+
+object ExtractableJsonAstNode {
+  type ExtractableJsonAstNodeContext = MacroContext { type PrefixType = ExtractableJsonAstNode }
+  def extract[A: c.WeakTypeTag](c: ExtractableJsonAstNodeContext)(formats: c.Expr[Formats]): c.Expr[A] = {
+    macroimpls.Deserializer.extract_impl(c)(c.universe.reify(c.prefix.splice.jv))(formats)
+  }
+}
+
+class ExtractableJsonAstNode(val jv: JValue) {
   /**
    * Extract a value from a JSON.
    * <p>
@@ -17,8 +27,8 @@ class ExtractableJsonAstNode(jv: JValue) {
    * JObject(JField("name", JString("joe")) :: Nil).extract[Person] == Person("joe")
    * </pre>
    */
-  def extract[A](implicit formats: Formats, mf: scala.reflect.Manifest[A]): A =
-    Extraction.extract(jv)(formats, mf)
+  def extract[A](implicit formats: Formats): A =
+    macro ExtractableJsonAstNode.extract[A]
 
   /**
    * Extract a value from a JSON.

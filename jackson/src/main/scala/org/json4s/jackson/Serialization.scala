@@ -14,7 +14,8 @@ import java.io.OutputStream
  *
  * @see org.json4s.TypeHints
  */
-object Serialization extends Serialization {
+//object Serialization extends Serialization {
+object Serialization {
   import java.io.{Reader, Writer}
   /** Serialize to String.
    */
@@ -44,14 +45,14 @@ object Serialization extends Serialization {
     out
   }
 
-  /** Deserialize from a String.
-   */
-  def read[A](json: String)(implicit formats: Formats, mf: Manifest[A]): A =
-    JsonMethods.parse(json, formats.wantsBigDecimal).extract[A]
-
-  /** Deserialize from a Reader.
-   */
-  def read[A](in: Reader)(implicit formats: Formats, mf: Manifest[A]): A = {
-    JsonMethods.parse(in, formats.wantsBigDecimal).extract(formats, mf)
-  }
+//  /** Deserialize from a String.
+//   */
+//  def read[A](json: String)(implicit formats: Formats, mf: Manifest[A]): A =
+//    JsonMethods.parse(json, formats.wantsBigDecimal).extract[A]
+//
+//  /** Deserialize from a Reader.
+//   */
+//  def read[A](in: Reader)(implicit formats: Formats, mf: Manifest[A]): A = {
+//    JsonMethods.parse(in, formats.wantsBigDecimal).extract(formats, mf)
+//  }
 }

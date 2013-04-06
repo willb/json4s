@@ -31,7 +31,7 @@ import io.{BufferRecycler, SegmentedStringWriter}
  *
  * @see org.json4s.TypeHints
  */
-object Serialization extends Serialization  {
+object Serialization  {
   import java.io.{Reader, StringWriter, Writer}
   /** Serialize to String.
    */
@@ -69,24 +69,35 @@ object Serialization extends Serialization  {
 
   /** Deserialize from a String.
    */
-  def read[A](json: String)(implicit formats: Formats, mf: Manifest[A]): A = {
-    JsonMethods.parse(json, formats.wantsBigDecimal).extract[A]
-  }
+  import scala.language.experimental.macros
 
-  @deprecated("You can use formats now to indicate you want to use decimals instead of doubles", "3.2.0")
-  def read[A](json: String, useBigDecimalForDouble: Boolean)(implicit formats: Formats, mf: Manifest[A]): A =
-    if (useBigDecimalForDouble) read(json)(formats.withBigDecimal, mf) else read(json)(formats.withDouble, mf)
+  def read[A](str: String)(implicit defaultFormats: Formats): A =
+    macro macroimpls.Deserializer.read_impl[A]
+
+//  @deprecated("You can use formats now to indicate you want to use decimals instead of doubles", "3.2.0")
+//  def read[A](json: String, useBigDecimalForDouble: Boolean)(implicit formats: Formats, mf: Manifest[A]): A =
+//    if (useBigDecimalForDouble) read(json)(formats.withBigDecimal, mf) else read(json)(formats.withDouble, mf)
+//
+//  /** Deserialize from a Reader.
+//   */
+//  @deprecated("You can use formats now to indicate you want to use decimals instead of doubles", "3.2.0")
+//  def read[A](in: Reader, useBigDecimalForDouble: Boolean)(implicit formats: Formats, mf: Manifest[A]): A =
+//    if (useBigDecimalForDouble) read(in)(formats.withBigDecimal, mf) else read(in)(formats.withDouble, mf)
 
   /** Deserialize from a Reader.
    */
-  @deprecated("You can use formats now to indicate you want to use decimals instead of doubles", "3.2.0")
-  def read[A](in: Reader, useBigDecimalForDouble: Boolean)(implicit formats: Formats, mf: Manifest[A]): A =
-    if (useBigDecimalForDouble) read(in)(formats.withBigDecimal, mf) else read(in)(formats.withDouble, mf)
+//  def read[A](in: Reader)(implicit formats: Formats): A = {
+//    JsonParser.parse(in, formats.wantsBigDecimal).extract(formats, mf)
+//  }
+  def read[A](in: Reader)(implicit defaultFormats: Formats): A =
+    macro read_reader[A]
 
-  /** Deserialize from a Reader.
-   */
-  def read[A](in: Reader)(implicit formats: Formats, mf: Manifest[A]): A = {
-    JsonParser.parse(in, formats.wantsBigDecimal).extract(formats, mf)
+  import scala.reflect.macros.Context
+  def read_reader[A: c.WeakTypeTag](c: Context)(in: c.Expr[Reader])(defaultFormats: c.Expr[Formats]): c.Expr[A] = {
+    import c.universe._
+    macroimpls.Deserializer.extract_impl(c)(
+      reify(JsonParser.parse(in.splice, defaultFormats.splice.wantsBigDecimal))
+    )(defaultFormats)
   }
 
 }

@@ -121,7 +121,7 @@ case class ClassSerializer[A : Manifest, B : Manifest](t: ClassType[A, B]) exten
   def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), A] = {
     case (TypeInfo(Class, _), json) => json match {
       case JNull => null.asInstanceOf[A]
-      case xs: JObject if (xs.extractOpt[B].isDefined) => t.unwrap(xs.extract[B])
+      case xs: JObject if (xs.extractOpt[B].isDefined) => ??? // TODO: fix this. t.unwrap(xs.extract[B])
       case value => throw new MappingException(s"Can't convert $value to $Class")
     }
   }
