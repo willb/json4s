@@ -62,44 +62,44 @@ object SerBench extends Benchmark {
 
     val str = project.toString
 
-    def strr = str
-    benchmark("Java serialization (ser)") { serialize(project) }
-    benchmark("Java noop") { strr }
-    benchmark("Java toString (ser)") { project.toString }
-    println()
-
-    println("### Jackson with Scala module")
-    benchmark("Jackson serialization (full)") { mapper.readValue(mapper.writeValueAsString(project), classOf[Project])}
-    benchmark("Jackson serialization (ser)") { mapper.writeValueAsString(project) }
-    val ser3 = mapper.writeValueAsString(project)
-    benchmark("Jackson (deser)") { mapper.readValue(ser3, classOf[Project]) }
-    parseBenchmark("Jackson AST (parse)") { mapper.readValue(json, classOf[JsonNode]) }
-    val jn = mapper.readValue(json, classOf[JsonNode])
-    benchmark("Jackson AST (ser)") { mapper.writeValueAsString(jn) }
-    println()
+//    def strr = str
+//    benchmark("Java serialization (ser)") { serialize(project) }
+//    benchmark("Java noop") { strr }
+//    benchmark("Java toString (ser)") { project.toString }
+//    println()
+//
+//    println("### Jackson with Scala module")
+//    benchmark("Jackson serialization (full)") { mapper.readValue(mapper.writeValueAsString(project), classOf[Project])}
+//    benchmark("Jackson serialization (ser)") { mapper.writeValueAsString(project) }
+//    val ser3 = mapper.writeValueAsString(project)
+//    benchmark("Jackson (deser)") { mapper.readValue(ser3, classOf[Project]) }
+//    parseBenchmark("Jackson AST (parse)") { mapper.readValue(json, classOf[JsonNode]) }
+//    val jn = mapper.readValue(json, classOf[JsonNode])
+//    benchmark("Jackson AST (ser)") { mapper.writeValueAsString(jn) }
+//    println()
 
     println("### Json4s direct AST")
     parseBenchmark("json4s-native AST (parse)") { native.JsonMethods.parse(json) }
-    parseBenchmark("json4s-jackson AST (parse)") { jackson.JsonMethods.parse(json)}
-    benchmark("json4s-native AST (ser)") { native.JsonMethods.compact(native.JsonMethods.render(projectJValue)) }
-    benchmark("json4s-jackson AST (ser)") { jackson.JsonMethods.compact(projectJValue) }
-    println()
-
-    println("### Custom serializer")
-    new Bench()(DefaultFormats + new ProjectSerializer)
-    println()
-
-    println("### No type hints")
-    new Bench()(DefaultFormats)
-    println()
-
-    println("### Short type hints")
-    new Bench()(native.Serialization.formats(ShortTypeHints(classes)))
-    println()
-
-    println("### Full type hints")
-    new Bench()(DefaultFormats + FullTypeHints(classes))
-    println()
+//    parseBenchmark("json4s-jackson AST (parse)") { jackson.JsonMethods.parse(json)}
+//    benchmark("json4s-native AST (ser)") { native.JsonMethods.compact(native.JsonMethods.render(projectJValue)) }
+//    benchmark("json4s-jackson AST (ser)") { jackson.JsonMethods.compact(projectJValue) }
+//    println()
+//
+//    println("### Custom serializer")
+//    new Bench()(DefaultFormats + new ProjectSerializer)
+//    println()
+//
+//    println("### No type hints")
+//    new Bench()(DefaultFormats)
+//    println()
+//
+//    println("### Short type hints")
+//    new Bench()(native.Serialization.formats(ShortTypeHints(classes)))
+//    println()
+//
+//    println("### Full type hints")
+//    new Bench()(DefaultFormats + FullTypeHints(classes))
+//    println()
   }
 
   def benchmark(name: String)(f: => Any) = run(name, 120000, 20000)(f)

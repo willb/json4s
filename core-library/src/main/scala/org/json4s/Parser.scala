@@ -80,6 +80,8 @@ trait ParserMeta {
   val OpenArr = org.json4s.Parser.OpenArr
   val CloseArr = org.json4s.Parser.CloseArr
 
+  // The version with overloads is a bit faster than the one that pattern matches on json input
+  // So json input pattern matching is moved to
   def parse(in: String): JValue =
     parse(new StringReader(in), astParser(_, false), useBigDecimalForDouble = false, closeAutomatically = true)
   def parse(in: java.io.Reader): JValue =
@@ -211,10 +213,6 @@ trait ParserMeta {
 
     root getOrElse JNothing
   }
-
-
-
-
 
 }
 

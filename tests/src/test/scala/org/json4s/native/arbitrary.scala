@@ -39,15 +39,15 @@ object ArbitraryJson4s {
   //     }
   //   }
   // }
-  def genJDecimal: Gen[JDecimal] = for {
+  def genJDecimal: Gen[JNumber] = for {
     d <- arbitrary[Double]
   } yield JDecimal(BigDecimal(d))
-  def arbJDecimal: Arbitrary[JDecimal] = Arbitrary(genJDecimal)
+  def arbJDecimal: Arbitrary[JNumber] = Arbitrary(genJDecimal)
 
-  def genJDouble: Gen[JDouble] = for {
+  def genJDouble: Gen[JNumber] = for {
     d <- arbitrary[Double]
   } yield JDouble(d)
-  def arbJDouble: Arbitrary[JDouble] = Arbitrary(genJDouble)
+  def arbJDouble: Arbitrary[JNumber] = Arbitrary(genJDouble)
 
   def genJString: Gen[JString] = for {
     s <- arbitrary[String]
@@ -59,10 +59,10 @@ object ArbitraryJson4s {
   } yield JBool(b)
   def arbJBool: Arbitrary[JBool] = Arbitrary(genJBool)
 
-  def genJInt: Gen[JInt] = for {
+  def genJInt: Gen[JNumber] = for {
     l <- arbitrary[Long]
   } yield JInt(l)
-  def arbJInt: Arbitrary[JInt] = Arbitrary(genJInt)
+  def arbJInt: Arbitrary[JNumber] = Arbitrary(genJInt)
 
   def genJNull: Gen[JNull.type] = Gen value JNull
   def arbJNull: Arbitrary[JNull.type] = Arbitrary(genJNull)

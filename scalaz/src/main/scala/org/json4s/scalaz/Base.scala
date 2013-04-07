@@ -39,7 +39,7 @@ trait Base { this: Types =>
   implicit def intJSON: JSON[Int] = new JSON[Int] {
     def read(json: JValue) = json match {
       case JInt(x) => Validation.success(x.intValue)
-      case x => UnexpectedJSONError(x, classOf[JInt]).failureNel
+      case x => UnexpectedJSONError(x, classOf[JNumber]).failureNel
     }
 
     def write(value: Int) = JInt(BigInt(value))
@@ -48,7 +48,7 @@ trait Base { this: Types =>
   implicit def longJSON: JSON[Long] = new JSON[Long] {
     def read(json: JValue) = json match {
       case JInt(x) => Validation.success(x.longValue)
-      case x => UnexpectedJSONError(x, classOf[JInt]).failureNel
+      case x => UnexpectedJSONError(x, classOf[JNumber]).failureNel
     }
 
     def write(value: Long) = JInt(BigInt(value))
@@ -57,7 +57,7 @@ trait Base { this: Types =>
   implicit def doubleJSON: JSON[Double] = new JSON[Double] {
     def read(json: JValue) = json match {
       case JDouble(x) => Validation.success(x)
-      case x => UnexpectedJSONError(x, classOf[JDouble]).failureNel
+      case x => UnexpectedJSONError(x, classOf[JNumber]).failureNel
     }
 
     def write(value: Double) = JDouble(value)
@@ -75,7 +75,7 @@ trait Base { this: Types =>
   implicit def bigintJSON: JSON[BigInt] = new JSON[BigInt] {
     def read(json: JValue) = json match {
       case JInt(x) => Validation.success(x)
-      case x => UnexpectedJSONError(x, classOf[JInt]).failureNel
+      case x => UnexpectedJSONError(x, classOf[JNumber]).failureNel
     }
 
     def write(value: BigInt) = JInt(value)

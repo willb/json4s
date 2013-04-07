@@ -27,28 +27,22 @@ import JsonAST._
  */
 trait BigDecimalMode { self: Implicits ⇒
 
-  implicit def double2jvalue(x: Double): JValue = JDecimal(x)
-  implicit def float2jvalue(x: Float): JValue = JDecimal(x.toDouble)
-  implicit def bigdecimal2jvalue(x: BigDecimal): JValue = JDecimal(x)
-
 }
 object BigDecimalMode extends Implicits with BigDecimalMode
 trait DoubleMode { self: Implicits ⇒
-  implicit def double2jvalue(x: Double): JValue = JDouble(x)
-  implicit def float2jvalue(x: Float): JValue = JDouble(x.toDouble)
-  implicit def bigdecimal2jvalue(x: BigDecimal): JValue = JDouble(x.doubleValue())
 
 }
 object DoubleMode extends Implicits with DoubleMode
 trait Implicits {
-  implicit def int2jvalue(x: Int) = JInt(x)
-  implicit def long2jvalue(x: Long) = JInt(x)
-  implicit def bigint2jvalue(x: BigInt) = JInt(x)
-  implicit def double2jvalue(x: Double): JValue
-  implicit def float2jvalue(x: Float): JValue
-  implicit def bigdecimal2jvalue(x: BigDecimal): JValue
+  implicit def int2jvalue(x: Int): JValue = JInt(x)
+  implicit def long2jvalue(x: Long): JValue = JInt(x)
+  implicit def bigint2jvalue(x: BigInt): JValue = JInt(x)
+  implicit def double2jvalue(x: Double): JValue = JDouble(x)
+  implicit def float2jvalue(x: Float): JValue = JDouble(x)
+  implicit def bigdecimal2jvalue(x: BigDecimal): JValue = JDecimal(x)
   implicit def boolean2jvalue(x: Boolean) = JBool(x)
   implicit def string2jvalue(x: String) = JString(x)
+
 }
 
 /**
@@ -83,14 +77,12 @@ trait JsonDSL extends Implicits {
 
   class JsonAssoc[A <% JValue](left: (String, A)) {
     def ~[B <% JValue](right: (String, B)) = {
-      val l: JValue = left._2
-      val r: JValue = right._2
-      JObject(JField(left._1, l) :: JField(right._1, r) :: Nil)
+      JObject(left.asInstanceOf[JField] :: right.asInstanceOf[JField] :: Nil)
     }
 
     def ~(right: JObject) = {
-      val l: JValue = left._2
-      JObject(JField(left._1, l) :: right.obj)
+      val(lk, lv: JValue) = left
+      JObject(JField(lk, lv) :: right.obj)
     }
   }
 

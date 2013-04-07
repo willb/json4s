@@ -122,7 +122,7 @@ object SerializationBugs extends Specification {
       def deserialize(implicit format: Formats) = {
         case (TypeInfo(`singleOrVectorClass`, _), json) => json match {
           case JObject(List(JField("val", JDouble(x)))) => SingleValue(x)
-          case JObject(List(JField("val", JArray(xs: List[JDouble])))) => VectorValue(xs.map(_.num).toIndexedSeq)
+          case JObject(List(JField("val", JArray(xs: List[JNumber])))) => VectorValue(xs.map(_.num.doubleValue()).toIndexedSeq)
           case x => throw new MappingException(s"Can't convert $x to SingleOrVector")
         }
       }

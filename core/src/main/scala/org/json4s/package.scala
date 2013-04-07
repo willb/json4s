@@ -6,11 +6,10 @@ package object json4s {
   val  JNull    = JsonAST.JNull
   type JString  = JsonAST.JString
   val  JString  = JsonAST.JString
-  type JDouble  = JsonAST.JDouble
+  type JNumber  = JsonAST.JNumber
+  val  JNumber  = JsonAST.JNumber
   val  JDouble  = JsonAST.JDouble
-  type JDecimal = JsonAST.JDecimal
   val  JDecimal = JsonAST.JDecimal
-  type JInt     = JsonAST.JInt
   val  JInt     = JsonAST.JInt
   type JBool    = JsonAST.JBool
   val  JBool    = JsonAST.JBool

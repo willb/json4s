@@ -151,9 +151,9 @@ abstract class Examples[T](mod: String) extends Specification with JsonMethods[T
     }
 
     "Unbox values using XPath-like type expression" in {
-      parse(objArray) \ "children" \\ classOf[JInt] must_== List(5, 3)
-      parse(lotto) \ "lotto" \ "winning-numbers" \ classOf[JInt] must_== List(2, 45, 34, 23, 7, 5, 3)
-      parse(lotto) \\ "winning-numbers" \ classOf[JInt] must_== List(2, 45, 34, 23, 7, 5, 3)
+      (parse(objArray) \ "children" \\ classOf[JNumber]).map(_.intValue()) must_== List(5, 3)
+      parse(lotto) \ "lotto" \ "winning-numbers" \ classOf[JNumber] must_== List(2, 45, 34, 23, 7, 5, 3)
+      parse(lotto) \\ "winning-numbers" \ classOf[JNumber] must_== List(2, 45, 34, 23, 7, 5, 3)
     }
 
     "Quoted example" in {
@@ -198,7 +198,7 @@ abstract class Examples[T](mod: String) extends Specification with JsonMethods[T
     "Example which collects all integers and forms a new JSON" in {
       val json = parse(person)
       val ints = json.fold(JNothing: JValue) { (a, v) => v match {
-        case x: JInt => a ++ x
+        case x: JNumber => a ++ x
         case _ => a
       }}
       compact(render(ints)) must_== """[35,33]"""
