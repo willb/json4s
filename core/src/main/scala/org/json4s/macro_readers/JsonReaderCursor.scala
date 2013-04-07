@@ -1,4 +1,5 @@
-package org.json4s.macro_readers
+package org.json4s
+package macro_readers
 
 import scala.annotation.tailrec
 
@@ -38,8 +39,7 @@ private[json4s] class JsonReaderCursor(reader: java.io.Reader, bufferSize: Int =
 
   @inline @tailrec
   private final def trim() {
-    var chr = nextChar()
-    if(isWhitespace(chr)) trim()
+    if(isWhitespace(nextChar())) trim()
     else current -= 1           // Found it, so need to rewind one char
   }
 
@@ -74,9 +74,10 @@ private[json4s] class JsonReaderCursor(reader: java.io.Reader, bufferSize: Int =
 
   // returns true if finished, otherwise false
   def zoomPastSeparator(sep: Char, end: Char): Boolean = {
-    trim() match {
+    trim()
+    nextChar match {
       case c if (c == sep) => false
-      case c if (c == end) => true
+      case c if (c == end) => current -= 1; true
       case c => failParse(s"Separator '$c' is not '$sep' or '$end'")
     }
   }
@@ -100,16 +101,19 @@ private[json4s] class JsonReaderCursor(reader: java.io.Reader, bufferSize: Int =
     else failStructure(s"Next token is not a boolean: $start")
   }
 
-  def extractField(): JsonField = peak() match {
-    case '"'                        => findNextString()
-    case '{'                        => JsonObject(new TextObjectReader(self))
-    case '['                        => JsonArray(new TextArrayIterator(self))
-    case c if (isNumberChar(c))     => findNextNumber()
-    case c if (c == 'f' && nextChar == 'a' && nextChar == 'l' && nextChar == 's' && nextChar == 'e') => JsonBool(false)
-    case c if (c == 't' && nextChar == 'r' && nextChar == 'u' && nextChar == 'e') => JsonBool(true)
-    case 'n' if (nextChar == 'u' && nextChar == 'l' && nextChar == 'l') => Null
+  def extractField() = {
+    trim()
+    peak() match {
+      case '"'                        => findNextString()
+      case '{'                        => JsonObject(new TextObjectReader(self))
+      case '['                        => JsonArray(new TextArrayIterator(self))
+      case c if (isNumberChar(c))     => findNextNumber()
+      case 'f' if (nextChar == 'f' && nextChar == 'a' && nextChar == 'l' && nextChar == 's' && nextChar == 'e') => JsonBool(false)
+      case 't' if (nextChar == 't' && nextChar == 'r' && nextChar == 'u' && nextChar == 'e') => JsonBool(true)
+      case 'n' if (nextChar == 'u' && nextChar == 'l' && nextChar == 'l') => Null
 
-    case _ => failParse(s"Cursor not at valid field.")
+      case e => failParse(s"Cursor not at valid field. Char: $e")
+    }
   }
 }
 

@@ -132,6 +132,8 @@ class TextReaderSpec extends Specification {
 
   "JsonReaderCursor" should {
     "Find next object" in {
+      val json =
+        """{ "cats": 34, "dogs": { "cats": true, "fish": [1, "cats", [1, 2, 3]] } }"""
       val r1 = new JsonReaderCursor(new java.io.StringReader(json))
       val abj = r1.extractField()
       abj must beAnInstanceOf[JsonObject]
@@ -141,93 +143,98 @@ class TextReaderSpec extends Specification {
       val cursor = new JsonReaderCursor(new java.io.StringReader(""""Hello world" """))
       cursor.findNextString() must_== JsonString("Hello world")
     }
-//
-//    "Find next string with escaped escape" in {
-//      val cursor = new JsonStringCursor(""""Hello world\\" """)
-//      cursor.findNextString() must_== JsonString("""Hello world\""")
-//      cursor.remainder must_== " "
-//    }
-//
-//    "Unescape string properly" in {
-//      (new JsonStringCursor("\"abc\\\"\\\\\\/\\b\\f\\n\\r\\t\\u00a0\"")).findNextString() must_==
-//        JsonString("abc\"\\/\b\f\n\r\t\u00a0")
-//    }
-//
-//    "Strip down a string" in {
-//      (new JsonStringCursor("\"Hello world! \\\" this is cool \\\" \" "))
-//        .findNextString() must_== JsonString("Hello world! \" this is cool \" ")
-//    }
-//
-//    "Strip down a number" in {
-//      val r1 = new JsonStringCursor("34 }")
-//      r1.findNextNumber() must_== JsonNumber("34")
-//      r1.remainder must_== " }"
-//
-//      val r2 = new JsonStringCursor("34, ")
-//      r2.findNextNumber() must_== JsonNumber("34")
-//      r2.remainder must_== ", "
-//
-//      val r3 = new JsonStringCursor("34.54, ")
-//      r3.findNextNumber() must_== JsonNumber("34.54")
-//      r3.remainder must_== ", "
-//
-//      val r4 = new JsonStringCursor("-34e-5, ")
-//      r4.findNextNumber() must_== JsonNumber("-34e-5")
-//      r4.remainder must_== ", "
-//    }
-//
-//    "Find a boolean" in {
-//      val r1 = new JsonStringCursor("true, ")
-//      r1.findNextBoolean() must_== JsonBool(true)
-//      r1.remainder must_== ", "
-//
-//      val r2 = new JsonStringCursor("false, ")
-//      r2.findNextBoolean() must_== JsonBool(false)
-//      r2.remainder must_== ", "
-//    }
-//
-//    "break down an object" in {
-//      val reader = JsonTextReader.bindText(json)
-//      reader.asInstanceOf[TextObjectReader].fields must_==
-//        ("cats", JsonNumber("34"))::
-//          ("dogs", JsonObject(new TextObjectReader(new JsonStringCursor(
-//            """{ "cats": true, "fish": [1, "cats", [1, 2, 3]]} """
-//          ))))::Nil
-//
-//      val reader2 = JsonTextReader.bindText("""{ "ca[]ts": true, "fi{sh": [1, "cats", [1, 2, 3]] }""")
-//      reader2.asInstanceOf[TextObjectReader].fields must_==
-//        ("ca[]ts", JsonBool(true))::
-//          ("fi{sh", JsonArray(JsonTextReader.bindText("""[1, "cats", [1, 2, 3]]""").asInstanceOf[TextArrayIterator]))::Nil
-//    }
-//
-//    "break down an array" in {
-//      val reader = new TextArrayIterator(new JsonStringCursor("""[ 3, false, { "cat": "cool" }, [ 1, 2]] """))
-//      reader.nextInt must_== 3
-//      reader.nextBool must_== false
-//      reader.nextObjectReader.asInstanceOf[TextObjectReader].fields must_== ("cat", JsonString("cool") )::Nil
-//      val r2 = reader.nextArrayReader
-//      r2.nextInt must_== 1
-//      r2.nextInt must_== 2
-//    }
-//
-//    "Throw a ParseException on bad json" in {
-//      case class Simple(one: Int, two: Boolean)
-//      val json =  """[{"one": 1, "two": true}, "one": 11, "two": false}]"""
-//      (new TextArrayIterator(new JsonStringCursor(json))) must throwA[ParserUtil.ParseException]
-//    }
-//
-//    "Throw a MappingException on wrong type of json" in {
-//      case class Simple(one: Int, two: Boolean)
-//      val json =  """[{"one": 1, "two": true}, "one": 11, "two": false}]"""
-//      (new TextObjectReader(new JsonStringCursor(json))) must throwA[MappingException]
-//    }
-//
-//
-//    "Throw a ParseException on bad json" in {
-//      case class Simple(one: Int, two: Boolean)
-//      val json =  """{"one": 1, "two": gtrue}"""
-//      (new TextObjectReader(new JsonStringCursor(json))) must throwA[ParserUtil.ParseException]
-//    }
+
+    "Find next string with escaped escape" in {
+      val cursor = new JsonReaderCursor(new java.io.StringReader(""""Hello world\\" """))
+      cursor.findNextString() must_== JsonString("""Hello world\""")
+    }
+
+    "Unescape string properly" in {
+      (new JsonReaderCursor(new java.io.StringReader("\"abc\\\"\\\\\\/\\b\\f\\n\\r\\t\\u00a0\"")))
+        .findNextString() must_==
+        JsonString("abc\"\\/\b\f\n\r\t\u00a0")
+    }
+
+    "Strip down a string" in {
+      (new JsonReaderCursor(new java.io.StringReader("\"Hello world! \\\" this is cool \\\" \" ")))
+        .findNextString() must_== JsonString("Hello world! \" this is cool \" ")
+    }
+
+    "Strip down a number" in {
+      val r1 = new JsonReaderCursor(new java.io.StringReader("34 }"))
+      r1.findNextNumber() must_== JsonNumber("34")
+
+      val r2 = new JsonReaderCursor(new java.io.StringReader("34, "))
+      r2.findNextNumber() must_== JsonNumber("34")
+
+      val r3 = new JsonReaderCursor(new java.io.StringReader("34.54, "))
+      r3.findNextNumber() must_== JsonNumber("34.54")
+
+      val r4 = new JsonReaderCursor(new java.io.StringReader("-34e-5, "))
+      r4.findNextNumber() must_== JsonNumber("-34e-5")
+    }
+
+    "Find a boolean" in {
+      val r1 = new JsonReaderCursor(new java.io.StringReader("true, "))
+      r1.findNextBoolean() must_== JsonBool(true)
+
+      val r2 = new JsonReaderCursor(new java.io.StringReader("false, "))
+      r2.findNextBoolean() must_== JsonBool(false)
+    }
+
+    "break down an object" in {
+      val reader = new JsonReaderCursor(new java.io.StringReader(json)).extractField()
+        .asInstanceOf[JsonObject]
+        .reader
+        .asInstanceOf[TextObjectReader]
+
+      reader.fields must_==
+        ("cats", JsonNumber("34"))::
+          ("dogs", JsonObject(new TextObjectReader(new JsonStringCursor(
+            """{ "cats": true, "fish": [1, "cats", [1, 2, 3]]} """
+          ))))::Nil
+
+      val reader2 = new JsonReaderCursor(new java.io.StringReader("""{ "ca[]ts": true, "fi{sh": [1, "cats", [1, 2, 3]] }"""))
+          .extractField()
+          .asInstanceOf[JsonObject]
+          .reader
+          .asInstanceOf[TextObjectReader]
+
+      reader2.fields must_==
+        ("ca[]ts", JsonBool(true))::
+          ("fi{sh", JsonArray(JsonTextReader.bindText("""[1, "cats", [1, 2, 3]]""").asInstanceOf[TextArrayIterator]))::Nil
+    }
+
+    "break down an array" in {
+      val reader = new TextArrayIterator(
+        new JsonReaderCursor(new java.io.StringReader("""[ 3, false, { "cat": "cool" }, [ 1, 2]] """))
+      )
+      reader.nextInt must_== 3
+      reader.nextBool must_== false
+      reader.nextObjectReader.asInstanceOf[TextObjectReader].fields must_== ("cat", JsonString("cool") )::Nil
+      val r2 = reader.nextArrayReader
+      r2.nextInt must_== 1
+      r2.nextInt must_== 2
+    }
+
+    "Throw a ParseException on bad json" in {
+      case class Simple(one: Int, two: Boolean)
+      val json =  """[{"one": 1, "two": true}, "one": 11, "two": false}]"""
+      (new TextArrayIterator(new JsonReaderCursor(new java.io.StringReader(json)))) must throwA[ParserUtil.ParseException]
+    }
+
+    "Throw a MappingException on wrong type of json" in {
+      case class Simple(one: Int, two: Boolean)
+      val json =  """[{"one": 1, "two": true}, "one": 11, "two": false}]"""
+      (new TextObjectReader(new JsonReaderCursor(new java.io.StringReader(json)))) must throwA[MappingException]
+    }
+
+
+    "Throw a ParseException on bad json" in {
+      case class Simple(one: Int, two: Boolean)
+      val json =  """{"one": 1, "two": gtrue}"""
+      (new TextObjectReader(new JsonReaderCursor(new java.io.StringReader(json)))) must throwA[ParserUtil.ParseException]
+    }
   }
 
   "JsonTextReader helpers" should {
