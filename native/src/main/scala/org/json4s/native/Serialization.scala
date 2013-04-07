@@ -34,11 +34,6 @@ import io.{BufferRecycler, SegmentedStringWriter}
 object Serialization extends Serialization  {
   import java.io.{Reader, StringWriter, Writer}
 
-  def formats(hints: TypeHints) = new Formats {
-    val dateFormat = DefaultFormats.lossless.dateFormat
-    override val typeHints = hints
-  }
-
   /** Serialize to String.
    */
   def write[A <: AnyRef](a: A)(implicit formats: Formats): String = {
