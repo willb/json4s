@@ -10,9 +10,7 @@ import runtime.ScalaRunTime
  * Created on 3/25/13 at 8:37 PM
  */
 
-final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader with CursorFailure {
-
-  def remainder = cursor.remainder
+final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader {
 
   override def equals(other: Any) = other match {
     case other: TextObjectReader => this.fields == other.fields
@@ -23,15 +21,15 @@ final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader wi
   override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1(fields))
 
   val fields: List[(String, JsonField)] = {
-    if(cursor.nextChar() != '{' ) failStructure(s"Json is not an object: ${cursor.remainder}")
-    cursor.trim()
+    if(cursor.nextChar() != '{' ) failStructure(s"Json is not an object")
+    //cursor.trim()
 
     val builder = new collection.mutable.ListBuffer[(String, JsonField)]()
 
     @tailrec
     def looper(): Unit = {
       val JsonString(key) = cursor.findNextString()
-      if (cursor.zoomPastSeparator(':', '}')) failParse(s"Invalid json.")
+      if (cursor.zoomPastSeparator(':', '}')) cursor.failParse(s"Invalid json.")
       val value = cursor.extractField()
       builder += ((key, value))
       if(!cursor.zoomPastSeparator(',', '}')) {
@@ -39,7 +37,7 @@ final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader wi
       }
     }
     looper()
-    if(cursor.nextChar() != '}' ) failParse(s"Json object missing closing bracket.")
+    if(cursor.nextChar() != '}' ) cursor.failParse(s"Json object missing closing bracket.")
     builder.result
   }
 
@@ -106,9 +104,7 @@ final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader wi
   })
 }
 
-final class TextArrayIterator(cursor: JsonTextCursor) extends JsonArrayIterator with CursorFailure {
-
-  def remainder = cursor.remainder
+final class TextArrayIterator(cursor: JsonTextCursor) extends JsonArrayIterator {
 
   override def equals(other: Any) = other match {
     case other: TextArrayIterator => this.fields == other.fields
@@ -120,8 +116,7 @@ final class TextArrayIterator(cursor: JsonTextCursor) extends JsonArrayIterator 
   override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1(fields))
 
   var fields: List[JsonField] = {
-    if(cursor.nextChar() != '[' ) failParse(s"Json is not an array.")
-    cursor.trim()
+    if(cursor.nextChar() != '[' ) cursor.failParse(s"Json is not an array.")
     val builder = new ListBuffer[JsonField]
     @tailrec
     def looper(): Unit = {
@@ -130,7 +125,7 @@ final class TextArrayIterator(cursor: JsonTextCursor) extends JsonArrayIterator 
     }
 
     looper()
-    if(cursor.nextChar() != ']' ) failParse(s"Json object missing closing bracket.")
+    if(cursor.nextChar() != ']' ) cursor.failParse(s"Json object missing closing bracket.")
     builder.result()
   }
 
