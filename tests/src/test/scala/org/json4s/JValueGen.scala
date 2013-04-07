@@ -37,8 +37,8 @@ trait JValueGen {
   def genField = for (name <- identifier; value <- genJValue; id <- choose(0, 1000000)) yield JField(name+id, value)
 
   def genJValueClass: Gen[Class[_ <: JValue]] = oneOf(
-    JNull.getClass.asInstanceOf[Class[JValue]], JNothing.getClass.asInstanceOf[Class[JValue]],
-    classOf[JNumber], classOf[JBool], classOf[JString], classOf[JArray], classOf[JObject])
+    JNull.getClass.asInstanceOf[Class[JValue]], JNothing.getClass.asInstanceOf[Class[JValue]], classOf[JDouble],
+    classOf[JInt], classOf[JDecimal], classOf[JBool], classOf[JString], classOf[JArray], classOf[JObject])
 
   def listSize = choose(0, 5).sample.get
 }

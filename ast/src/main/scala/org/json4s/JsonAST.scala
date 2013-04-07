@@ -121,29 +121,18 @@ object JsonAST {
     def values = s
   }
 
-  case class JNumber(num: BigDecimal) extends JValue {
+  trait JNumber { self: JValue => }
+  case class JDouble(num: Double) extends JValue with JNumber {
+    type Values = Double
+    def values = num
+  }
+  case class JDecimal(num: BigDecimal) extends JValue with JNumber {
     type Values = BigDecimal
     def values = num
   }
-
-  object JInt {
-    def apply(num: BigInt) = JNumber(BigDecimal(num))
-    def unapply(jvalue: JNumber): Option[BigInt] =
-      if (jvalue.num.isValidLong) Some(jvalue.num.toBigInt())
-      else None
-  }
-
-  object JDecimal {
-    def apply(num: BigDecimal) = JNumber(num)
-    def unapply(jvalue: JNumber) = JNumber.unapply(jvalue)
-  }
-
-  object JDouble {
-    def apply(num: Double) = JNumber(BigDecimal(num))
-
-    def unapply(jvalue: JNumber): Option[Double] =
-      if (jvalue.num.isValidDouble) Some(jvalue.num.toDouble)
-      else None
+  case class JInt(num: BigInt) extends JValue with JNumber {
+    type Values = BigInt
+    def values = num
   }
   case class JBool(value: Boolean) extends JValue {
     type Values = Boolean
