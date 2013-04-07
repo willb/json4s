@@ -27,7 +27,6 @@ trait Macros {
 
   def extract[U](jvalue: JValue)(implicit defaultFormats: Formats): U =
   macro macroimpls.Deserializer.extract_impl[U]
-
 }
 
 object Macros extends Macros
