@@ -37,6 +37,8 @@ private[json4s] case class JsonNumber(str: String) extends JsonField {
 trait JsonTextCursor {
   def empty: Boolean
   def findNextString(): JsonString
+
+  // Will move past separator, trimming until next char. If at end, leaves end char.
   def zoomPastSeparator(sep: Char, end: Char): Boolean
   def findNextNumber(): JsonNumber
   def extractField(): JsonField

@@ -20,9 +20,8 @@ final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader {
 
   override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1(fields))
 
-  val fields: List[(String, JsonField)] = {
+  private[json4s] val fields: List[(String, JsonField)] = {
     if(cursor.nextChar() != '{' ) failStructure(s"Json is not an object")
-    //cursor.trim()
 
     val builder = new collection.mutable.ListBuffer[(String, JsonField)]()
 
