@@ -138,18 +138,21 @@ object build extends Build {
     base = file("jackson"),
     settings = json4sSettings ++ Seq(libraryDependencies ++= jackson)
   ) dependsOn(core % "compile;test->test")
-//
-//  lazy val playSupport = Project(
-//    id = "json4s-play",
-//    base = file("play"),
-//    settings = json4sSettings ++ Seq(libraryDependencies ++= jackson)
-//  ) dependsOn(core % "compile;test->test")
+
+  lazy val playSupport = Project(
+    id = "json4s-play",
+    base = file("play"),
+    settings = json4sSettings ++ Seq(
+      libraryDependencies += play,
+      resolvers += "play repo" at "http://typesafe.artifactoryonline.com/typesafe/releases"
+    )
+  ) dependsOn(core % "compile;test->test")
 
   lazy val examples = Project(
      id = "json4s-examples",
      base = file("examples"),
      settings = json4sSettings ++ SbtStartScript.startScriptForClassesSettings ++ Seq(
-       libraryDependencies += "net.databinder.dispatch" %% "dispatch-core" % "0.9.4",
+       libraryDependencies += "net.databinder.dispatch" %% "dispatch-core" % "0.9.5",
        libraryDependencies <+= scalaVersion {
          case v if v.startsWith("2.9") => "com.fasterxml.jackson.module" % "jackson-module-scala_2.9.2" % "2.1.3"
          case _ => "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.1.3"

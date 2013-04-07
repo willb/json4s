@@ -23,7 +23,7 @@ object Dependencies {
   lazy val specs = "org.specs2" %% "specs2"      % "1.14"  % "test"
 
   val jackson = Seq(
-      "com.fasterxml.jackson.core" % "jackson-databind" % "2.1.2")
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.1.4")
 
   val paranamer = "com.thoughtworks.paranamer" % "paranamer" % "2.5.2"
 
@@ -32,5 +32,7 @@ object Dependencies {
   val commonsCodec = "commons-codec"              % "commons-codec"      % "1.7"
 
   val mockito = "org.mockito"                 % "mockito-all"              % "1.9.5"      % "test"
+
+  val play = "play" %% "play" % "2.1.1" % "provided"
 
 }
