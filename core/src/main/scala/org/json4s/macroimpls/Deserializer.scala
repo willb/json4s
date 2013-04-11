@@ -246,21 +246,21 @@ object Deserializer {
 
         val expr = c.Expr[Set[String]](Apply(Select(Ident("Set"), newTermName("apply")),
           ctors.flatten
-          .filter(!isRequired(_))
-          .map(LIT(_).tree)
+          .filter(isRequired(_))
+          .map(sym => Literal(Constant(sym.name.decoded)))
         ))
 
         reify(expr.splice.subsetOf(argNames.splice))
       }
 
       // Gives an ordered list of a tuple of
-      def pickConstructor(clazz: Type, argNames: c.Expr[Set[String]]): List[(c.Expr[Boolean], List[List[Symbol]])] = {
-        val ctors = clazz.member(nme.CONSTRUCTOR)
+      def pickConstructor(argNames: c.Expr[Set[String]]): List[(c.Expr[Boolean], List[List[Symbol]])] = {
+        val ctors: List[MethodSymbol] = tpe.member(nme.CONSTRUCTOR)
           .asTerm.alternatives   // List of constructors
           .map(_.asMethod)       // method symbols
-          .sortBy(-_.paramss.sortBy(-_.size).headOption.getOrElse(Nil).size)
-
+          .sortBy(-_.paramss.flatten.size)
         // List[(List[c.Expr[Boolean]], List[List[Symbol]])]
+
         ctors.map(ctor => ctorCheckingExpr(ctor.paramss, argNames)).zip(ctors.map(_.asMethod.paramss))
       }
 
@@ -303,40 +303,11 @@ object Deserializer {
           })
         )
 
-      val ctorParams = tpe.member(nme.CONSTRUCTOR).asMethod.paramss
+      //val ctorParams = tpe.member(nme.CONSTRUCTOR).asMethod.paramss
 
 
       val newObjTree = ValDef(Modifiers(), newObjTerm, newObjTypeTree,
-        New(newObjTypeTree, ctorParams.map(_.zipWithIndex.map {
-          case (pSym, index) =>
-          // Change out the types if it has type parameters
-          val pTpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
-          val fieldName = LIT(pSym.name.decoded)
-
-          // If param has defaults, try to find the val in map, or call
-          // default evaluation from its companion object
-          if (pSym.asTerm.isParamWithDefault && helpers.isPrimitive(pTpe)) {
-            reify {
-              buildPrimitiveOpt(pTpe, fieldName, orExpr).splice
-              .getOrElse(c.Expr(Select(Ident(sym.companionSymbol), newTermName(
-                "$lessinit$greater$default$" + (index+1).toString))
-              ).splice)
-            }.tree
-          } else if (pSym.asTerm.isParamWithDefault) {
-            reify {
-              try {
-                c.Expr(buildField(pTpe, fieldName, orExpr)).splice // splice in another obj tree
-              } catch {
-                case e: MappingException =>
-                  // Need to use the origional symbol.companionObj to get defaults
-                  // Would be better to find the generated TermNames if possible
-                  c.Expr(Select(Ident(sym.companionSymbol), newTermName(
-                    "$lessinit$greater$default$" + (index+1).toString))
-                  ).splice
-              }
-            }.tree
-          } else buildField(pTpe, fieldName, orExpr)
-        })) // Using the New(Tree, List(List(Tree))) constructor
+        ifElseTreeBuilder(pickConstructor(reify(orExpr.splice.getKeys)))
       ) // newObjTree ValDef
         
       // Generate the code for setting fields not in the constructor

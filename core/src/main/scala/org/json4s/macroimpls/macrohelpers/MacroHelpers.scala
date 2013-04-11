@@ -23,7 +23,12 @@ class MacroHelpers[C <: Context](val c1: C) {
   
   def getNonConstructorVars(tpe: Type): List[Symbol] = {
     // Make sure that the param isn't part of the constructor
-    val ctorParams = tpe.member(nme.CONSTRUCTOR).asMethod.paramss.flatten.map(_.name.toTermName.toString.trim)
+    //val ctorParams = tpe.member(nme.CONSTRUCTOR).asMethod.paramss.flatten.map(_.name.toTermName.toString.trim)
+    val ctorParams = tpe.member(nme.CONSTRUCTOR).asTerm.alternatives
+      .map(_.asMethod.paramss.flatten.map(_.name.toTermName.toString.trim))
+      .flatten
+      .toSet
+
     for{
       sym <- getVars(tpe) if !ctorParams.exists(sym.name.toTermName.toString.trim == _)
     } yield sym
