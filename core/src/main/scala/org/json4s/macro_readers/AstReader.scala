@@ -26,12 +26,16 @@ final class AstObjectReader(lst: List[JField]) extends JsonObjectReader {
     inner(lst)
   }
 
-  override def getKeys = {
-    def buildKeys(fields: List[JField]): List[String] = fields match {
-      case Nil => Nil
-      case field => field.head._1::buildKeys(field.tail)
+  lazy val getKeys = {
+    val builder = Set.newBuilder[String]
+    def buildKeys(fields: List[JField]) {
+      if (!fields.isEmpty) {
+        builder += fields.head._1
+        buildKeys(fields.tail)
+      }
     }
     buildKeys(lst)
+    builder.result()
   }
 
   override def getObjectReader(key: String): JsonObjectReader = getField(key) match {

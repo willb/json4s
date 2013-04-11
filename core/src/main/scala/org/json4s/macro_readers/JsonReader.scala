@@ -16,7 +16,7 @@ sealed trait JsonReader {
 }
 
 trait JsonObjectReader extends JsonReader {
-  def getKeys: Seq[String]
+  def getKeys: Set[String]
 
   def hasKey(str: String) = getKeys.exists( _ == str)
 

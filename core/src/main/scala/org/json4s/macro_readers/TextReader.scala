@@ -49,7 +49,7 @@ final class TextObjectReader(cursor: JsonTextCursor) extends JsonObjectReader {
     looper(fields)
   }
 
-  lazy val getKeys: Seq[String] = fields.map(_._1)
+  lazy val getKeys: Set[String] = fields.map(_._1).toSet
 
   // Option forms
   def optObjectReader(key: String): Option[JsonObjectReader] = getField(key).map ( _ match {
