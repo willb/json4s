@@ -17,21 +17,33 @@ class MacroHelpers[C <: Context](val c1: C) {
           Ident(t.typeSymbol), typeArgs map (t => typeArgumentTree(t)) )
     case _                                => Ident(t.typeSymbol.name)
   }
-    
+
+  // Warning: also returns private vars and vals
   def getVars(tpe: Type): List[Symbol] = tpe.members.filter(_.isTerm).filter(_.asTerm.isVar).toList
   def getVals(tpe: Type): List[Symbol] = tpe.members.filter(_.isTerm).filter(_.asTerm.isVal).toList
   
   def getNonConstructorVars(tpe: Type): List[Symbol] = {
     // Make sure that the param isn't part of the constructor
-    //val ctorParams = tpe.member(nme.CONSTRUCTOR).asMethod.paramss.flatten.map(_.name.toTermName.toString.trim)
     val ctorParams = tpe.member(nme.CONSTRUCTOR).asTerm.alternatives
       .map(_.asMethod.paramss.flatten.map(_.name.toTermName.toString.trim))
       .flatten
       .toSet
 
     for{
-      sym <- getVars(tpe) if !ctorParams.exists(sym.name.toTermName.toString.trim == _)
+      sym <- getVars(tpe) if !ctorParams.exists(sym.name.toTermName.toString.trim == _) && !sym.asTerm.isPrivate
     } yield sym
+  }
+
+  def getJavaStyleSetters(tpe: Type) = {
+    val candidates = tpe.members.filter(_.isTerm).filter(_.asTerm.isMethod).filter{ s =>
+      val name = s.asTerm.name.decoded
+      name.startsWith("get") || name.startsWith("set")
+    }
+
+    candidates.filter ( sym =>
+      candidates.exists(_.asTerm.name.decoded.trim.endsWith(sym.asTerm.name.decoded.trim.substring("set".length))) &&
+        sym.asMethod.paramss.flatten.length == 1
+    ).toList
   }
 
   private val primitiveTypes =  {
