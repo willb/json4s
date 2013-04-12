@@ -18,8 +18,12 @@ class MacroHelpers[C <: Context](val c1: C) {
     case _                                => Ident(t.typeSymbol.name)
   }
 
-  // Warning: also returns private vars and vals
-  def getVars(tpe: Type): List[Symbol] = tpe.members.filter(_.isTerm).filter(_.asTerm.isVar).toList
+  def getVars(tpe: Type): List[Symbol] = tpe
+    .members
+    .filter(_.isTerm)
+    .filter(x => x.asTerm.isVar && x.asTerm.setter.isPublic && x.asTerm.getter.isPublic)
+    .toList
+
   def getVals(tpe: Type): List[Symbol] = tpe.members.filter(_.isTerm).filter(_.asTerm.isVal).toList
   
   def getNonConstructorVars(tpe: Type): List[Symbol] = {
@@ -29,8 +33,11 @@ class MacroHelpers[C <: Context](val c1: C) {
       .flatten
       .toSet
 
-    for{
-      sym <- getVars(tpe) if !ctorParams.exists(sym.name.toTermName.toString.trim == _) && !sym.asTerm.isPrivate
+    // TODO: Looks like these are always accessed with getters and setters. Need to find if the getters and setters
+    //       are valid
+    for {
+      // TODO: need to check if the var is public or not, but doesn't seem to work properly
+      sym <- getVars(tpe) if (!ctorParams.exists(sym.name.toTermName.toString.trim == _))
     } yield sym
   }
 
@@ -39,7 +46,6 @@ class MacroHelpers[C <: Context](val c1: C) {
       val name = s.asTerm.name.decoded
       name.startsWith("get") || name.startsWith("set")
     }
-
     candidates.filter ( sym =>
       candidates.exists(_.asTerm.name.decoded.trim.endsWith(sym.asTerm.name.decoded.trim.substring("set".length))) &&
         sym.asMethod.paramss.flatten.length == 1
@@ -49,6 +55,7 @@ class MacroHelpers[C <: Context](val c1: C) {
   private val primitiveTypes =  {
     c1.typeOf[Int]::
       c1.typeOf[String]::
+      c1.typeOf[Char]::
       c1.typeOf[Float]::
       c1.typeOf[Double]::
       c1.typeOf[Boolean]::

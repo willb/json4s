@@ -219,9 +219,8 @@ object Deserializer {
       else throw new java.lang.NoSuchFieldException(s"Type '$tpe' is not a primitive!")
     }
 
-    // The really heavyweight function. Most of the magic happens in the last else statement
+    // Builds a class and sets its fields if they are detected
     def buildObject(tpe: Type, reader: c.Expr[JsonObjectReader]): Tree = {
-      println(tpe)
       val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = tpe
 
       val orNme = c.fresh("jsonReader$")
@@ -277,14 +276,16 @@ object Deserializer {
 
             // If param has defaults, try to find the val in map, or call
             // default evaluation from its companion object
-            if (pSym.asTerm.isParamWithDefault && helpers.isPrimitive(pTpe) && tpe.typeSymbol.asClass.isCaseClass) {
+            // TODO: is the sym.companionSymbol.isTerm the best way to check for NoSymbol?
+            // TODO: is there a way to get teh default values for the overloaded constructors?
+            if (pSym.asTerm.isParamWithDefault && helpers.isPrimitive(pTpe) && sym.companionSymbol.isTerm) {
               reify {
                 buildPrimitiveOpt(pTpe, fieldName, orExpr).splice
                   .getOrElse(c.Expr(Select(Ident(sym.companionSymbol), newTermName(
                   "$lessinit$greater$default$" + (index+1).toString))
                 ).splice)
               }.tree
-            } else if (pSym.asTerm.isParamWithDefault && tpe.typeSymbol.asClass.isCaseClass) {
+            } else if (pSym.asTerm.isParamWithDefault && sym.companionSymbol.isTerm) {
               reify {
                 try {
                   c.Expr(buildField(pTpe, fieldName, orExpr)).splice // splice in another obj tree
@@ -305,41 +306,7 @@ object Deserializer {
         pickConstructorTree(reify(orExpr.splice.getKeys))
       )
 
-      // Generate the code for setting fields not in the constructor
-//      val setParamsBlocks = getNonConstructorVars(tpe).map{ pSym =>
-//        val pTpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
-//        val varName = pSym.name.toTermName.toString.trim
-//        val compName = LIT(varName)
-//        // Use option if primitive, should be faster than exceptions.
-//        if(helpers.isPrimitive(pTpe)) reify {
-//          buildPrimitiveOpt(pTpe, compName, orExpr).splice match {
-//            case Some(x) => c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)), Ident("x"))).splice
-//            case None =>
-//          }
-//        }.tree
-//        else if(typeOf[List[_]] <:< pTpe.erasure) reify {
-//          reader.splice.optArrayReader(compName.splice) match {
-//            case Some(x) => c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)),
-//              buildList(pTpe,c.Expr[JsonArrayIterator](Ident("x"))))).splice
-//            case None =>
-//          }
-//        }.tree
-//        else if(typeOf[Map[_, _]] <:< pTpe.erasure) reify {
-//          reader.splice.optObjectReader(compName.splice) match {
-//            case Some(x) => c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)),
-//              buildMap(pTpe,c.Expr[JsonObjectReader](Ident("x"))))).splice
-//            case None =>
-//          }
-//        }.tree
-//        else reify {
-//          reader.splice.optObjectReader(compName.splice) match {
-//            case Some(x) => c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)),
-//              buildObject(pTpe,c.Expr[JsonObjectReader](Ident("x"))))).splice
-//            case None =>
-//          }
-//        }.tree
-//      }
-
+      // Sets fields after the instance is has been created
       def optionalParams(pTpe: Type, varName: String, exprMaker: Tree => c.Expr[_]): Tree = {
         val compName = LIT(varName)
         // Use option if primitive, should be faster than exceptions.
@@ -369,63 +336,31 @@ object Deserializer {
         }.tree
       }
 
-      // Generate the code for setting fields not in the constructor
-//      def optionalParams(lst: List[(Symbol, Type)], exprMaker: (Symbol, Tree) => c.Expr[_]) = lst.map{ case (pSym, pTpe) =>
-//
-//        val varName = pSym.name.toTermName.toString.trim
-//        val compName = LIT(varName)
-//        // Use option if primitive, should be faster than exceptions.
-//        if(helpers.isPrimitive(pTpe)) reify {
-//          buildPrimitiveOpt(pTpe, compName, orExpr).splice match {
-//            case Some(x) => exprMaker(pSym, Ident("x")).splice
-//            case None =>
-//          }
-//        }.tree
-//        else if(typeOf[List[_]] <:< pTpe.erasure) reify {
-//          reader.splice.optArrayReader(compName.splice) match {
-//            case Some(x) => exprMaker(pSym, buildList(pTpe,c.Expr[JsonArrayIterator](Ident("x")))).splice
-//            case None =>
-//          }
-//        }.tree
-//        else if(typeOf[Map[_, _]] <:< pTpe.erasure) reify {
-//          reader.splice.optObjectReader(compName.splice) match {
-//            case Some(x) => exprMaker(pSym, buildMap(pTpe,c.Expr[JsonObjectReader](Ident("x")))).splice
-//            case None =>
-//          }
-//        }.tree
-//        else reify {
-//          reader.splice.optObjectReader(compName.splice) match {
-//            case Some(x) => exprMaker(pSym, buildObject(pTpe,c.Expr[JsonObjectReader](Ident("x")))).splice
-//            case None =>
-//          }
-//        }.tree
-//      }
-
-      val setParamsBlocks =
-        getNonConstructorVars(tpe).map{ sym =>
-          val varName = sym.name.toTermName.toString.trim
-          val tpe = sym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
+      // Sets non constructor public vars TODO: will with fail on protected?
+      val setVarsBlocks =
+        getNonConstructorVars(tpe).map{ pSym =>
+          val varName = pSym.name.toTermName.toString.trim
+          val tpe = pSym.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
           optionalParams(tpe, varName,
             tree => c.Expr(Assign(Select(Ident(newObjTerm), newTermName(varName)), tree))
           )
         }
 
       val setSetterBlocks =
-        getJavaStyleSetters(tpe).map { sym =>  // MethodSymbol
-          val origName = sym.name.decoded.substring(3)
+        getJavaStyleSetters(tpe).map { pSym =>  // MethodSymbol
+          val origName = pSym.name.decoded.substring(3)
           val name = origName.charAt(0).toLower + origName.substring(1)
           val paramType = {
-            val tpe = sym.asMethod.paramss(0)(0)
-            // TODO: fix the typing here. Why cant I get the type args? Do I need too?
-            tpe.typeSignature//.substituteTypes(tpe.asClass.typeParams, tpeArgs)
+            val tpe = pSym.asMethod.paramss(0)(0)
+            tpe.typeSignature.substituteTypes(sym.asClass.typeParams, tpeArgs)
           }
           optionalParams(paramType, name,
-            tree =>  c.Expr(Apply(Select(Ident(newObjTerm), sym.name), tree::Nil))
+            tree =>  c.Expr(Apply(Select(Ident(newObjTerm), pSym.name), tree::Nil))
           )
       }
 
 
-      Block(orTree::newObjTree::setParamsBlocks:::setSetterBlocks, Ident(newObjTerm))
+      Block(orTree::newObjTree::setVarsBlocks:::setSetterBlocks, Ident(newObjTerm))
     }
     
     val tpe = weakTypeOf[U]
@@ -457,7 +392,7 @@ object Deserializer {
         }
       }
     }
-    println(expr)  // Debug
+    //println(expr)  // Debug
     expr
   }
 }
