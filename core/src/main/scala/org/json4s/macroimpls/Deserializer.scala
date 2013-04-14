@@ -221,8 +221,11 @@ object Deserializer {
 
     // Builds a class and sets its fields if they are detected
     def buildObject(tpe: Type, reader: c.Expr[JsonObjectReader]): Tree = {
+      // Find some info on our object type
       val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = tpe
+      val newObjTypeTree = typeArgumentTree(tpe)
 
+      // Make the object reader tree bits
       val orNme = c.fresh("jsonReader$")
       val orExpr = c.Expr[JsonObjectReader](Ident(orNme))
       val orTree = ValDef(
@@ -231,9 +234,6 @@ object Deserializer {
         TypeTree(typeOf[JsonObjectReader]),
         reader.tree
       )
-
-      val newObjTerm = newTermName(c.fresh("newObj$"))
-      val newObjTypeTree = typeArgumentTree(tpe)
 
       // Builds the if/else tree for checking constructor params and returning a new object
       def pickConstructorTree(argNames: c.Expr[Set[String]]): Tree = {
@@ -262,9 +262,9 @@ object Deserializer {
           .asTerm.alternatives   // List of constructors
           .map(_.asMethod)       // method symbols
           .sortBy(-_.paramss.flatten.size)
-        val tuples = ctors.map(ctor => ctorCheckingExpr(ctor.paramss)).zip(ctors.map(_.asMethod.paramss))
+        val ifExprsAndParams = ctors.map(ctor => ctorCheckingExpr(ctor.paramss)).zip(ctors.map(_.asMethod.paramss))
 
-        ifElseTreeBuilder(tuples)
+        ifElseTreeBuilder(ifExprsAndParams)
       }
 
       def buildObjFromParams(ctorParams: List[List[Symbol]]): Tree =
@@ -302,10 +302,6 @@ object Deserializer {
           })
         )
 
-      val newObjTree = ValDef(Modifiers(), newObjTerm, newObjTypeTree,
-        pickConstructorTree(reify(orExpr.splice.getKeys))
-      )
-
       // Sets fields after the instance is has been created
       def optionalParams(pTpe: Type, varName: String, exprMaker: Tree => c.Expr[_]): Tree = {
         val compName = LIT(varName)
@@ -336,7 +332,11 @@ object Deserializer {
         }.tree
       }
 
-      // Sets non constructor public vars TODO: will with fail on protected?
+      val newObjTerm = newTermName(c.fresh("newObj$"))
+      val newObjTree = ValDef(Modifiers(), newObjTerm, newObjTypeTree,
+        pickConstructorTree(reify(orExpr.splice.getKeys))
+      )
+
       val setVarsBlocks =
         getNonConstructorVars(tpe).map{ pSym =>
           val varName = pSym.name.toTermName.toString.trim
@@ -358,7 +358,6 @@ object Deserializer {
             tree =>  c.Expr(Apply(Select(Ident(newObjTerm), pSym.name), tree::Nil))
           )
       }
-
 
       Block(orTree::newObjTree::setVarsBlocks:::setSetterBlocks, Ident(newObjTerm))
     }
