@@ -6,7 +6,7 @@ import scala.annotation.switch
 import org.json4s.ParserUtil.ParseException
 import java.io.Reader
 
-class JsonParserMeta(factory: JsonFactory) extends ParserMeta {
+class JsonParserMeta(val factory: JsonFactory) extends ParserMeta {
 
 
   /**

@@ -121,7 +121,7 @@ object JsonAST {
     def values = s
   }
 
-  trait JNumber { self: JValue => }
+  sealed trait JNumber { self: JValue => }
   case class JDouble(num: Double) extends JValue with JNumber {
     type Values = Double
     def values = num

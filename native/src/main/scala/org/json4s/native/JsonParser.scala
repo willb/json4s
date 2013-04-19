@@ -17,14 +17,12 @@
 package org.json4s
 package native
 
-import org.json4s.ParserUtil.{Buffer, parseDouble, ParseException}
+import org.json4s.ParserUtil.{Buffer, ParseException}
 import org.json4s
-import scala.io.Source
 
 /** JSON parser.
  */
 object JsonParser extends ParserMeta {
-  import java.io._
 
   /**
    * Return parsed JSON.
@@ -64,7 +62,7 @@ object JsonParser extends ParserMeta {
 
     private[this] val valueBuilder = new StringBuilder
 
-    private[this] def parseValue(first: Char) = {
+    private[this] def parseValue(first: Char): Token = {
       var wasInt = true
       var doubleVal = false
       val s = valueBuilder
