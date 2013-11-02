@@ -17,6 +17,10 @@ class MacroSerializerSpec extends Specification {
   case class WithDate(date: Date)
   case class WithSymbol(symbol: Symbol)
 
+  type Foo = Simple
+  case class WithTypeAlias(in: Foo)
+  case class Generic[A](in: A)
+
   implicit val defaultFormats = DefaultFormats
 
   "Macro Serializer" should {
@@ -150,6 +154,25 @@ class MacroSerializerSpec extends Specification {
       val json = writer.result
 
       json must_== JObject(List(("symbol", JString("cool"))))
+    }
+
+    "Work with type params" in {
+      val w = WithTypeAlias(new Foo(1,"2"))
+      val writer = JsonWriter.ast
+      serialize(w, writer)
+
+      writer.result must_== JObject(("in",
+        JObject(
+          ("one",JInt(1))::("two",JString("2"))::Nil
+        ))::Nil)
+    }
+
+    "Work with generic params" in {
+      val w = Generic(1)
+      val writer = JsonWriter.ast
+      serialize(w, writer)
+
+      writer.result must_== JObject(("in",JInt(1))::Nil)
     }
 
     "Serialize with decomposeWithBuilder" in {

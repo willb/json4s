@@ -171,7 +171,7 @@ object Serializer {
     }
 
     def complexObject(oldTpe: Type, path: Tree): c.Tree = {
-      val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = oldTpe
+      val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = oldTpe.normalize
       val fields = getVars(oldTpe):::getVals(oldTpe) // get fields
 
       val fieldTrees = fields.flatMap { pSym =>
@@ -197,7 +197,7 @@ object Serializer {
       .getOrElse(complexObject(tpe, path))
 
 
-    val tpe = weakTypeOf[U]
+    val tpe = weakTypeOf[U].normalize
 
     // Only basic types are lists maps or objects
     if (helpers.isPrimitive(tpe) || tpe =:= typeOf[Option[_]])

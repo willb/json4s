@@ -51,6 +51,7 @@ class ClassWithDef(val in: Int=4) {
   }
 }
 
+
 case class ObjWithDefJunk(name:String, junk:Junk=Junk(-1,"Default"))
 
 class MacroDeserializerSpec extends Specification {
@@ -58,6 +59,9 @@ class MacroDeserializerSpec extends Specification {
   implicit val defaultFormats = DefaultFormats
   val refJunk = Junk(2,"cats")
   val refJunkDict: JValue = decompose(refJunk)
+
+  type Foo = Junk
+  case class WithAlias(in: Foo)
 
   "Macros.deserialize" should  {
 
@@ -371,6 +375,12 @@ class MacroDeserializerSpec extends Specification {
       result.setI(1)
       deserialize[WithSetters](AstReader(params)) must_== result
     }
+
+    "Deserialize a Object with a type alias" in {
+      val expected: Map[String, Any] = Map("in" -> Map("in1" -> 1, "in2" -> "2"))
+      val params = JObject(List("in" -> JObject(List("in1" -> JInt(1), "in2" -> JString("2")))))
+      deserialize[WithAlias](AstReader(params)) must_== WithAlias(new Foo(1,"2"))
+    }
   }
 
   "Macro.extract" should {
@@ -379,6 +389,5 @@ class MacroDeserializerSpec extends Specification {
       val params: JValue = List(("in" -> 1),("in" -> 3))
       extract[List[Bill]](params) must_== expected
     }
-
   }
 }

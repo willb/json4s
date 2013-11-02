@@ -220,7 +220,8 @@ object Deserializer {
     }
 
     // Builds a class and sets its fields if they are detected
-    def buildObject(tpe: Type, reader: c.Expr[JsonObjectReader]): Tree = {
+    def buildObject(_tpe: Type, reader: c.Expr[JsonObjectReader]): Tree = {
+      val tpe = _tpe.normalize
       // Find some info on our object type
       val TypeRef(_, sym: Symbol, tpeArgs: List[Type]) = tpe
       val newObjTypeTree = typeArgumentTree(tpe)
