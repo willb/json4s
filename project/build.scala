@@ -85,6 +85,7 @@ object build extends Build {
     base = file("core"),
     settings = json4sSettings ++ Seq(
       compileOrder := CompileOrder.JavaThenScala,
+      scalacOptions += "-Ymacro-debug-lite",
       libraryDependencies <++= scalaVersion { sv =>
         Seq(paranamer, scalap(sv), "org.scala-lang" % "scala-reflect" % sv)
       },
@@ -183,6 +184,7 @@ object build extends Build {
     id = "json4s-tests",
     base = file("tests"),
     settings = json4sSettings ++ Seq(
+      scalacOptions += "-Ymacro-debug-lite",
       libraryDependencies ++= Seq(specs, scalacheck, mockito),
       initialCommands in (Test, console) :=
         """
@@ -223,11 +225,11 @@ class MyRunner(subproject: String, config: ForkScalaRun) extends sbt.ScalaRun {
     val javaOptions = classpathOption(classpath) ::: mainClass :: options.toList
     val strategy = config.outputStrategy getOrElse LoggedOutput(log)
     val process =  Fork.java.fork(config.javaHome,
-                                  config.runJVMOptions ++ javaOptions,
-                                  config.workingDirectory,
-                                  Map.empty,
-                                  config.connectInput,
-                                  strategy)
+                              config.runJVMOptions ++ javaOptions,
+                              config.workingDirectory,
+                              Map.empty,
+                              config.connectInput,
+                              strategy)
     def cancel() = {
       log.warn("Run canceled.")
       process.destroy()

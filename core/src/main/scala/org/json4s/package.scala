@@ -40,10 +40,10 @@ package object json4s {
   type JArray   = JsonAST.JArray
   val  JArray   = JsonAST.JArray
 
-  val  TypeInfo = reflect.TypeInfo
-  type TypeInfo = reflect.TypeInfo
+  val  TypeInfo = _root_.org.json4s.reflect.TypeInfo
+  type TypeInfo = _root_.org.json4s.reflect.TypeInfo
 
-  trait ParameterNameReader extends reflect.ParameterNameReader
+  trait ParameterNameReader extends _root_.org.json4s.reflect.ParameterNameReader
 
   implicit def string2JsonInput(s: String): JsonInput = StringInput(s)
   implicit def reader2JsonInput(rdr: java.io.Reader): JsonInput = ReaderInput(rdr)

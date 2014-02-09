@@ -135,7 +135,9 @@ trait DefaultReaders {
       def read(value: _root_.org.json4s.JValue): F[V] = value match {
         case JArray(items) =>
           val builder = cbf()
-          (items.foldLeft(builder) { (acc, i) => acc += valueReader.read(i); acc}).result()
+          items.foldLeft(builder) {
+            (acc, i) => acc += valueReader.read(i); acc
+          }.result()
         case x => throw new MappingException("Can't convert %s to Traversable." format x)
       }
     }
