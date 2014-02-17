@@ -287,7 +287,7 @@ class TextReaderSpec extends Specification {
   "JsonAST" should {
     "Escape a string properly" in {
       val str = "He\tllo \" world!"
-      JsonAST.quote(str) must_== "He\\tllo \\\" world!"
+      ParserUtil.quote(str) must_== "He\\tllo \\\" world!"
     }
   }
 }

@@ -28,7 +28,7 @@ class FastTextWriter(writer: java.io.Writer) extends JsonWriter[String] { self =
 
   def string(value: String): JsonWriter[String] = {
     writer.write('"')
-    JsonAST.quote(value, writer)
+    ParserUtil.quote(value, writer)
 
     writer.write('"')
     self
