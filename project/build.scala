@@ -127,19 +127,6 @@ object build extends Build {
 //    settings = json4sSettings ++ Seq(libraryDependencies ++= jackson)
 //  ) dependsOn(core % "compile;test->test")
 
-  lazy val examples = Project(
-     id = "json4s-examples",
-     base = file("examples"),
-     settings = json4sSettings ++ SbtStartScript.startScriptForClassesSettings ++ Seq(
-       libraryDependencies += "net.databinder.dispatch" %% "dispatch-core" % "0.11.0",
-       libraryDependencies += jacksonScala
-     )
-  ) dependsOn(
-    core % "compile;test->test",
-    native % "compile;test->test",
-    jacksonSupport % "compile;test->test",
-    json4sExt,
-    mongo)
 
 //
 //  lazy val jacksonExt = Project(
@@ -148,35 +135,6 @@ object build extends Build {
 //    settings = json4sSettings ++ Seq(libraryDependencies ++= jodaTime)
 //  ) dependsOn(jacksonSupport % "compile;test->test")
 //
-
-  lazy val mongo = Project(
-     id = "json4s-mongo",
-     base = file("mongo"),
-     settings = json4sSettings ++ Seq(
-       libraryDependencies ++= Seq(
-         "org.mongodb" % "mongo-java-driver" % "2.11.4"
-      )
-  )) dependsOn(core % "compile;test->test")
-
-  lazy val benchmark = Project(
-    id = "json4s-benchmark",
-    base = file("benchmark"),
-    settings = json4sSettings ++ SbtStartScript.startScriptForClassesSettings ++ Seq(
-      cancelable := true,
-      libraryDependencies ++= Seq(
-        "com.google.code.java-allocation-instrumenter" % "java-allocation-instrumenter" % "2.0",
-        "com.google.caliper" % "caliper" % "0.5-rc1",
-        "com.google.code.gson" % "gson" % "1.7.1"
-      ),
-      libraryDependencies += jacksonScala,
-      runner in Compile in run <<= (thisProject, taskTemporaryDirectory, scalaInstance, baseDirectory, javaOptions, outputStrategy, javaHome, connectInput) map {
-        (tp, tmp, si, base, options, strategy, javaHomeDir, connectIn) =>
-          new MyRunner(tp.id, ForkOptions(javaHome = javaHomeDir, connectInput = connectIn, outputStrategy = strategy,
-            runJVMOptions = options, workingDirectory = Some(base)) )
-      }
-    )
-  ) dependsOn(core, native, jacksonSupport, json4sExt, mongo)
-
 
 }
 
