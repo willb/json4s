@@ -53,8 +53,7 @@ object build extends Build {
 
   val json4sSettings = Defaults.defaultSettings ++ mavenCentralFrouFrou ++ Seq(
     organization := "org.json4s",
-    scalaVersion := "2.10.0",
-    crossScalaVersions := Seq("2.10.0"),
+    scalaVersion := "2.10.3",
     scalacOptions ++= Seq("-unchecked", "-deprecation", "-optimize", "-feature", "-Yinline-warnings", "-language:existentials", "-language:implicitConversions", "-language:higherKinds", "-language:reflectiveCalls", "-language:postfixOps"),
     version := "3.2.7",
     javacOptions ++= Seq("-target", "1.6", "-source", "1.6"),
@@ -68,7 +67,7 @@ object build extends Build {
     id = "json4s",
     base = file("."),
     settings = json4sSettings
-  ) aggregate(core, native, json4sExt, jacksonSupport, scalazExt, json4sTests, mongo, ast)
+  ) aggregate(core, native, json4sExt, jacksonSupport, json4sTests, ast)
 
   lazy val ast = Project(
     id = "json4s-ast",
@@ -149,11 +148,6 @@ object build extends Build {
 //    settings = json4sSettings ++ Seq(libraryDependencies ++= jodaTime)
 //  ) dependsOn(jacksonSupport % "compile;test->test")
 //
-  lazy val scalazExt = Project(
-    id = "json4s-scalaz",
-    base = file("scalaz"),
-    settings = json4sSettings ++ Seq(libraryDependencies += scalaz_core)
-  ) dependsOn(core % "compile;test->test", native % "provided->compile", jacksonSupport % "provided->compile")
 
   lazy val mongo = Project(
      id = "json4s-mongo",
@@ -163,20 +157,6 @@ object build extends Build {
          "org.mongodb" % "mongo-java-driver" % "2.11.4"
       )
   )) dependsOn(core % "compile;test->test")
-
-  lazy val json4sTests = Project(
-    id = "json4s-tests",
-    base = file("tests"),
-    settings = json4sSettings ++ Seq(
-      libraryDependencies ++= Seq(specs, scalacheck, mockito),
-      initialCommands in (Test, console) :=
-        """
-          |import org.json4s._
-          |import reflect._
-          |import scala.tools.scalap.scalax.rules.scalasig._
-        """.stripMargin
-    )
-  ) dependsOn(core, native, json4sExt, scalazExt, jacksonSupport, mongo)
 
   lazy val benchmark = Project(
     id = "json4s-benchmark",
